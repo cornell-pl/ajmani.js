@@ -10,6 +10,7 @@ module Database
     Header, 
     Headers,
     empty,
+    getTableNames,
     getTableByName, 
     getHeaders, 
     getRecords, 
@@ -48,6 +49,9 @@ type Database = Map.Map Name Table
 
 empty :: Database
 empty = Map.empty
+
+getTableNames :: Database -> [Name]
+getTableNames = Map.keys
   
 getTableByName :: Name -> Database -> Maybe Table
 getTableByName = Map.lookup
@@ -69,8 +73,8 @@ putTable = Map.insert
 putRecord :: Id -> Fields -> Table -> Table
 putRecord i fs (Table hs rs) = Table hs $ Map.insert i fs rs
 
-createRecord :: Fields -> Table -> Table
-createRecord fs (Table hs rs) = Table hs $ Map.insert (i+1) fs rs 
+createRecord :: Fields -> Table -> (Id, Table)
+createRecord fs (Table hs rs) = (i+1, Table hs $ Map.insert (i+1) fs rs)
   where i = foldl max 0 (Map.keys rs)
 
 delTable :: Name -> Database -> Database
