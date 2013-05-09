@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric, FlexibleInstances #-}
 
 module Database 
   ( Database,
@@ -26,6 +27,9 @@ import qualified Data.Map as Map
 import Control.Concurrent.MVar
 import qualified Data.List as List
 
+import GHC.Generics
+import Data.Aeson
+
 type Header = String
 
 type Headers = [Header]
@@ -39,11 +43,20 @@ type Field = String
 type Fields = [Field]
 
 data Table = Table Headers Records
-  deriving (Eq,Show)
+  deriving (Eq,Show,Generic)
 
 type Records = Map.Map Id Fields
 
 type Database = Map.Map Name Table
+
+instance ToJSON Table
+instance FromJSON Table
+
+instance ToJSON a => ToJSON (Map.Map Int a) where
+  toJSON = toJSON . Map.toList
+               
+instance FromJSON a => FromJSON (Map.Map Int a) where
+  parseJSON = fmap Map.fromList . parseJSON
 
 -- Accessors
 

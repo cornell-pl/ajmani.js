@@ -75,7 +75,8 @@ main = scotty 3000 $ do
     put "/table/:name" $ do
         db <- liftIO $ readMVar dbVar
         name <- param "name"
-        let table = DB.Table [] M.empty
+        -- let table = DB.Table [] M.empty
+        table <- jsonData
         -- get table contents
         liftIO $ modifyMVar_ dbVar $ const . return $ DB.putTable name table db
         text "Success"
@@ -84,7 +85,8 @@ main = scotty 3000 $ do
         db <- liftIO $ readMVar dbVar
         name <- param "name"
         i <- param "id"
-        let fields = ["From:Nate", "Turn the crank!"]
+        -- let fields = ["From:Nate", "Turn the crank!"]
+        fields <- jsonData
         -- get field contents
 	case DB.getTableByName name db of
           Just table -> do liftIO $ modifyMVar_ dbVar $ const . return $ 
@@ -95,7 +97,8 @@ main = scotty 3000 $ do
     post "/table/:name/record" $ do
         db <- liftIO $ readMVar dbVar
         name <- param "name"
-        let fields = ["From:Nate", "Progress!"]
+        -- let fields = ["From:Nate", "Progress!"]
+        fields <- jsonData
         -- get field contents
 	case DB.getTableByName name db of
           Just table -> let (i, table') = DB.createRecord fields table in
