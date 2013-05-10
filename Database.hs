@@ -30,6 +30,10 @@ import qualified Data.List as List
 import GHC.Generics
 import Data.Aeson
 
+-- import qualified Text.CSV as CSV -- from csv package
+
+import qualified Data.ByteString.Lazy as BS
+
 type Header = String
 
 type Headers = [Header]
@@ -96,3 +100,17 @@ delTable = Map.delete
 delRecord :: Id -> Table -> Table
 delRecord i (Table hs rs) = Table hs $ Map.delete i rs
 
+-- CSV transformation functions
+
+-- | Converts a table to a string encoded CSV which can be directly written to a file.
+--toCSV :: Table -> String
+--toCSV (Table hs rs) = CSV.printCSV csv
+--  where csv = ("id":hs):(map fromPair $ Map.fromList rs)
+--        fromPair (k,v) = k:v
+
+-- | Converts the CSV file read as a String to a Table. Returns Nothing if parsing fails.
+--fromCSV :: String -> Maybe Table
+--fromCSV s = case CSV.parseCSV s of
+--    Left _ -> Nothing-
+--    Right ((_:h):r) -> Just $ Table h (Map.fromList $ map toPair r)
+--  where
