@@ -27,6 +27,8 @@
       equal(table.getHeaders().toString() ,["header1","header2"].toString() ,"Inserting and testing headers" );
       var id = table.createRecord(["b1","b2"]);
       equal( table.getRecordById(id).toString(),["b1","b2"].toString(), "put and then get");
+      var id2 = table.createRecord(["c1","c2"]);
+      equal( id+1,id2, "consecutive create Records have consecutive ids");
       table.delRecord(id);
       equal( table.getRecordById(id),null, "delete and then get");
     });
