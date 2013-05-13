@@ -35,7 +35,7 @@ Table.prototype.getRecords = function(){
 };
 
 // Returns null if record id is not found in the database
-Table.prototype.getRecordsById = function(id){
+Table.prototype.getRecordById = function(id){
     return (this.records[id] || null)
 };
 
