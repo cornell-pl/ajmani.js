@@ -1,24 +1,59 @@
 <html>
 <head>
   <title> Dummmy Client </title>
-  <script src="/jquery-2.0.0.min.js"></script>
-
+    <link rel="stylesheet" href="static/normalize.min.css">
+    <link rel="stylesheet" href="static/main.min.css">
+    <link rel="stylesheet" href="static/bootstrap.min.css">
+    <link rel="stylesheet" href="static/bootstrap-responsive.min.css">
+    <link rel="stylesheet" href="static/elasticjs.css">
+  <script src="static/jquery-2.0.0.min.js"></script>
+  <script src="static/underscore-min.js"></script>
+  <script src="static/database.js"></script>
+  <script src="static/app.js"></script>
 </head>
+<script type="text/template" id="tableTemplate">
+    <div class="row-fluid" style="margin-top:10%">
+        <div class="span4 offset4">
+          <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+		      <th> Id </th>
+		      <% _.each(table.headers, function(header) { %>
+                      <th><%= header %></th>
+                      <% }); %>
+                    </tr>
+                </thead>
+                <tbody>
+                  <% _.each(table.getRecords(), function(fields,id) { %>
+                  <tr>
+		    <td> <%= id %> </td>
+		    <% _.each(fields, function(f) { %>
+                    <td><%= f  %></td>
+		    <% }); %>
+                  </tr>
+		  <% }); %>
+                </tbody>
+
+          </table>
+        </div>
+    </div>
+</script>
 <body>
-<div id="target">
-  Click here
-</div>
-<div id="data">
-</div>
+  <div class="container-fluid">
+    <div class="row-fluid">
+      <div id="viewport">
+      </div>
+    </div>
+  </div>
   <script type="text/javascript">
     
-    $("#target").click(function() {
-    $.ajax({
-    url: "http://127.0.0.1:3000/db/0",
-    }).done(function(data) { 
-    $("#data").html("<pre>"+data+"</pre>");
-    });
-    });
+//    $("#target").click(function() {
+//    $.ajax({
+//    url: "http://127.0.0.1:3000/db/0",
+//    }).done(function(data) { 
+//    $("#data").html("<pre>"+data+"</pre>");
+//    });
+//    });
   </script>
 </body>
 </html>

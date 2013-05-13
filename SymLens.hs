@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module SymLens where
+import Control.Category
 
 data SymLens a b = forall c. SymLens {init :: c,
                                       putr :: a -> c -> (b,c),
@@ -40,6 +41,11 @@ prod (SymLens d1 pr1 pl1) (SymLens d2 pr2 pl2) =
 inv :: SymLens a b -> SymLens b a
 inv (SymLens def pr pl) = SymLens def pl pr                                                 
 
+idL :: SymLens a a
+idL = SymLens ()
+	      (\a _ -> (a,()))
+	      (\a _ -> (a,()))
+
 term :: a -> SymLens a ()
 term def = SymLens def
                    (\a  _ -> ((), a))
@@ -61,4 +67,7 @@ flmap (SymLens def pr pl) =
   SymLens (repeat def)
           (\as cs -> unzip $ map (uncurry pr) (zip as cs))                      
           (\bs cs -> unzip $ map (uncurry pl) (zip bs cs))
-                                     
+
+instance Category SymLens where
+    id = idL
+    (.) = flip . compose
