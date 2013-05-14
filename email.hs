@@ -2,8 +2,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Email where
-
 import Web.Scotty
 
 import Network.Wai.Middleware.RequestLogger -- install wai-extra if you don't have this
