@@ -58,7 +58,8 @@ rlmap (SymLens def pr pl) =
                       
 flmap :: SymLens a b -> SymLens [a] [b]
 flmap (SymLens def pr pl) = 
-  SymLens (repeat def)
-          (\as cs -> unzip $ map (uncurry pr) (zip as cs))                      
-          (\bs cs -> unzip $ map (uncurry pl) (zip bs cs))
+  SymLens []
+          (\as cs -> unzip $ map (uncurry pr) (zip as (cs ++ repeat def)))                      
+          (\bs cs -> unzip $ map (uncurry pl) (zip bs (cs ++ repeat def)))
+                                     
                                      
