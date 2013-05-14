@@ -30,6 +30,8 @@ import qualified Data.List as List
 import GHC.Generics
 import Data.Aeson
 
+import SymLens
+
 -- import qualified Text.CSV as CSV -- from csv package
 
 import qualified Data.ByteString.Lazy as BS
@@ -114,3 +116,4 @@ delRecord i (Table hs rs) = Table hs $ Map.delete i rs
 --    Left _ -> Nothing-
 --    Right ((_:h):r) -> Just $ Table h (Map.fromList $ map toPair r)
 --  where
+

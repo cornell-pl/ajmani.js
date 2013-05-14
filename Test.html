@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>QUnit basic example</title>
+  <link rel="stylesheet" href="static/qunit.css">
+</head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <script src="static/qunit.js"></script>
+  <script src="Database.js"></script>
+  <script>
+    test( "Database Tests", function() {
+      var db = new Database();
+      var table = new Table();
+      db.putTable('test',table);
+      equal(db.getTableNames().toString() ,["test"].toString() ,"putTable should reflect table name in the database" );
+      db.putTable('test2',new Table());
+      equal( db.getTableByName('test'),table, "getTableByName should return the correct table object");
+      db.delTable('test');
+      equal( db.getTableNames().toString(), ['test2'].toString(), "delTable should work as expected" );
+    });
+    test( "Table Tests", function() {
+      var table = new Table();
+      table.headers = ["header1","header2"];
+      equal(table.getHeaders().toString() ,["header1","header2"].toString() ,"Inserting and testing headers" );
+      var id = table.createRecord(["b1","b2"]);
+      equal( table.getRecordById(id).toString(),["b1","b2"].toString(), "put and then get");
+      var id2 = table.createRecord(["c1","c2"]);
+      equal( id+1,id2, "consecutive create Records have consecutive ids");
+      table.delRecord(id);
+      equal( table.getRecordById(id),null, "delete and then get");
+    });
+  </script>
+</body>
+</html>

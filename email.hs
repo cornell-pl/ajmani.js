@@ -38,7 +38,9 @@ emails = DB.putTable "moreEmail" emailTable2
                                  (1, ["From:Raghu", "Greetings"])]  
         emailTable2 = DB.Table ["headers", "body"] records2
         records2    = M.fromList [(1, ["From:Raghu", "Hello"]),
-                                  (2, ["From:Satvik", "Greetings"])]                                 
+                                  (2, ["From:Satvik", "Greetings"])]
+                                  
+                                                                   
                                 
 instance Parsable BL.ByteString where
   parseParam t = fmap (\a -> BL.fromChunks [a]) $ parseParam t 
