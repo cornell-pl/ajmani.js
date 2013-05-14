@@ -82,7 +82,8 @@ main = scotty 3000 $ do
     get "/table/:name" $ do
         db <- liftIO $ readMVar dbVar
         name :: String <- param "name"
-        -- v :: Int <- param "version"
+        v :: Int <- param "version"
+        liftIO $ print v
         json =<< (versioned dbVer $ DB.getTableByName name db)
         
     get "/table/:name/headers" $ do

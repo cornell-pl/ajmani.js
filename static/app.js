@@ -7,13 +7,14 @@
 		viewport = $('#viewport'),
 		viewport2 = $('#viewport2'),
 		renderTable = function(t) {
-                if (t !== null) {viewport.empty().append(tableTemplate({table : t}));}
+                if (t !== null) {viewport.empty().append(tableTemplate({table : t, database : db}));}
 		else {viewport.empty()};
 	    },
 		getTableName = function() {
 		    viewport2.empty().append(tableNameTemplate({})).find('#formTableName').submit(function(e){
 			    var tName = $('#tableName').val();
-			    console.log("Getting table " + tName + " from database");
+			    var ver = $('#clientVersion').val();
+			    db.version = ver ? ver : 0;
 			    db.getTableByName(tName,renderTable);
 			    return false;
 			});

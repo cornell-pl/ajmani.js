@@ -7,8 +7,8 @@ function Database(url, cache) {
     this.tables = {};
     this.cache = cache;
     this.url = url;
-    this.version = -1;
-    this.serverVersion = -1;
+    this.version = 0;
+    this.serverVersion = 0;
 }
 
 Database.prototype.getTableNames = function(callback){
