@@ -48,6 +48,7 @@ main = scotty 3000 $ do
     middleware logStdoutDev
     middleware $ staticPolicy (addBase "static/")
     dbVar <- liftIO $ newMVar emails
+    dbVer <- liftIO $ newMVar (0 :: Int)
     -- Routes Definitions
 
     get "/" $ do
