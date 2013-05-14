@@ -22,7 +22,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                  <% _.each(table.getRecords(), function(fields,id) { %>
+                  <% _.each(table.records, function(fields,id) { %>
                   <tr>
 		    <td> <%= id %> </td>
 		    <% _.each(fields, function(f) { %>

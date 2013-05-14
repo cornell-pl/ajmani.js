@@ -10,9 +10,10 @@ import Network.Wai.Middleware.RequestLogger -- install wai-extra if you don't ha
 
 import Control.Monad.Trans
 import Control.Concurrent.MVar
-import qualified Data.Aeson as A
+import Data.Aeson hiding (json)
 import qualified Data.Map as M
 import Data.Monoid
+import Control.Monad (mzero)
 
 import Network.HTTP.Types (status302)
 import Network.Wai
@@ -28,7 +29,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8)
 import qualified Database as DB
 import qualified SchemaChange as SC
 import qualified Data.List as List
-
+import Control.Applicative ((<$>),(<*>))
 -- Just for Testing
 emails :: DB.Database
 emails = DB.putTable "moreEmail" emailTable2 
@@ -43,12 +44,30 @@ emails = DB.putTable "moreEmail" emailTable2
 instance Parsable BL.ByteString where
   parseParam t = fmap (\a -> BL.fromChunks [a]) $ parseParam t 
 
+type Version = Int
+data Versioned a = Versioned Version a deriving (Show)
+
+instance (ToJSON a) => ToJSON (Versioned a) where
+  toJSON (Versioned v a) = object [ "version" .= v
+                                  , "body"    .= a
+                                  ]
+instance (FromJSON a) => FromJSON (Versioned a) where
+  parseJSON (Object v) = Versioned <$>
+                        v .: "version" <*>
+                        v .: "body"
+  parseJSON _          = mzero
+
+versioned :: MVar Version -> a -> ActionM (Versioned a)
+versioned mv a = do
+  v <- liftIO $ readMVar mv
+  return $ Versioned v a
+  
 main :: IO ()
 main = scotty 3000 $ do
     middleware logStdoutDev
     middleware $ staticPolicy (addBase "static/")
     dbVar <- liftIO $ newMVar emails
-    dbVer <- liftIO $ newMVar (0 :: Int)
+    dbVer <- liftIO $ newMVar (0 :: Version)
     -- Routes Definitions
 
     get "/" $ do
@@ -58,33 +77,32 @@ main = scotty 3000 $ do
     get "/tables" $ do
         db <- liftIO $ readMVar dbVar
         v :: Int <- param "version"
-        json $ DB.getTableNames db
+        json =<< (versioned dbVer $ DB.getTableNames db)
     
     get "/table/:name" $ do
         db <- liftIO $ readMVar dbVar
         name :: String <- param "name"
-        v :: Int <- param "version"
-        json $ DB.getTableByName name db
-
+        -- v :: Int <- param "version"
+        json =<< (versioned dbVer $ DB.getTableByName name db)
         
     get "/table/:name/headers" $ do
         db <- liftIO $ readMVar dbVar
         name <- param "name"
         v :: Int <- param "version"        
-        json $ fmap DB.getHeaders $ DB.getTableByName name db
+        json =<< (versioned dbVer $ fmap DB.getHeaders $ DB.getTableByName name db)
         
     get "/table/:name/records" $ do
         db <- liftIO $ readMVar dbVar
         name <- param "name"
         v :: Int <- param "version"                
-        json $ fmap DB.getRecords $ DB.getTableByName name db
+        json =<< (versioned dbVer $ fmap DB.getRecords $ DB.getTableByName name db)
     
     get "/table/:name/record/:id" $ do
         db <- liftIO $ readMVar dbVar
         name <- param "name"
         i <- param "id"
         v :: Int <- param "version"
-        json $ DB.getRecordById i =<< DB.getTableByName name db
+        json =<< (versioned dbVer $ DB.getRecordById i =<< DB.getTableByName name db)
     
     -- The following operations are not atomic, as the reads and writes can interleave 
     -- with those of other threads. These need to be made atomic, by lifting the 
@@ -95,10 +113,10 @@ main = scotty 3000 $ do
         name <- param "name"
         v :: Int <- param "version"
         bs <- param "table"
-        table <- maybe (raise "Table: no parse") return $ A.decode bs
+        table <- maybe (raise "Table: no parse") return $ decode bs
         -- get table contents
         liftIO $ modifyMVar_ dbVar $ const . return $ DB.putTable name table db
-        text "Success"
+        json =<< (versioned dbVer $ T.pack "Success")
         
     put "/table/:name/record/:id" $ do
         db <- liftIO $ readMVar dbVar
@@ -106,33 +124,33 @@ main = scotty 3000 $ do
         i <- param "id"
         v :: Int <- param "version"
         bs <- param "fields"
-        fields <- maybe (raise "Fields: no parse") return $ A.decode bs
+        fields <- maybe (raise "Fields: no parse") return $ decode bs
         -- get field contents
         case DB.getTableByName name db of
           Just table -> do liftIO $ modifyMVar_ dbVar $ const . return $ 
                              DB.putTable name (DB.putRecord i fields table) db
-                           text "Success"
-          Nothing    -> text "Failure"
+                           json =<< (versioned dbVer $ T.pack "Success")
+          Nothing    -> json =<< (versioned dbVer $ T.pack "Failure")
           
     post "/table/:name/record" $ do
         db <- liftIO $ readMVar dbVar
         name <- param "name"
         v :: Int <- param "version"
         bs <- param "fields"
-        fields <- maybe (raise "Fields: no parse") return $ A.decode bs
+        fields <- maybe (raise "Fields: no parse") return $ decode bs
         case DB.getTableByName name db of
           Just table -> let (i, table') = DB.createRecord fields table in
                         do liftIO $ modifyMVar_ dbVar $ const . return $ 
                              DB.putTable name table' db
-                           json i
-          Nothing    -> json $ T.pack "Failure"
+                           json =<< (versioned dbVer i)
+          Nothing    -> json =<< (versioned dbVer $ T.pack "Failure")
           
     delete "/table/:name" $ do   
         db <- liftIO $ readMVar dbVar
         name <- param "name"
         v :: Int <- param "version"
         liftIO $ modifyMVar_ dbVar $ const. return $ DB.delTable name db
-        json $ T.pack "Success"
+        json =<< (versioned dbVer $ T.pack "Success")
         
     delete "/table/:name/record/:id" $ do   
         db <- liftIO $ readMVar dbVar
@@ -142,8 +160,8 @@ main = scotty 3000 $ do
         case DB.getTableByName name db of
           Just table -> do liftIO $ modifyMVar_ dbVar $ const. return $ 
                              DB.putTable name (DB.delRecord i table) db
-                           json $ T.pack "Success"
-          Nothing    -> json $ T.pack "Failure"
+                           json =<< (versioned dbVer $  T.pack "Success")
+          Nothing    -> json =<< (versioned dbVer $ T.pack "Failure")
         
 testDelete :: IO ()
 testDelete = do

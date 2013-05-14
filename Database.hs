@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric, FlexibleInstances, OverloadedStrings #-}
 
 module Database 
   ( Database,
@@ -26,10 +26,13 @@ module Database
 import qualified Data.Map as Map
 import Control.Concurrent.MVar
 import qualified Data.List as List
+import Control.Applicative ((<$>),(<*>))
+import Control.Monad
 
-import GHC.Generics
 import Data.Aeson
-
+import qualified Data.Vector as V
+import qualified Data.HashMap.Lazy as H
+import qualified Data.Text as T
 -- import qualified Text.CSV as CSV -- from csv package
 
 import qualified Data.ByteString.Lazy as BS
@@ -47,20 +50,31 @@ type Field = String
 type Fields = [Field]
 
 data Table = Table Headers Records
-  deriving (Eq,Show,Generic)
+  deriving (Eq,Show)
 
 type Records = Map.Map Id Fields
 
 type Database = Map.Map Name Table
 
-instance ToJSON Table
-instance FromJSON Table
+instance ToJSON Table where
+  toJSON (Table hs rs) = object [ "headers" .= hs
+                                , "records" .= rs
+                                ]
+instance FromJSON Table where
+  parseJSON (Object v) = Table <$>
+                         v .: "headers" <*>
+                         v .: "records"
+  parseJSON _          = mzero
 
 instance ToJSON a => ToJSON (Map.Map Int a) where
-  toJSON = toJSON . Map.toList
+  toJSON = object . map toPair . Map.toList
+    where toPair (k,v) = (T.pack $ show k) .= v
                
 instance FromJSON a => FromJSON (Map.Map Int a) where
-  parseJSON = fmap Map.fromList . parseJSON
+  parseJSON (Object v) = foldM (\m k -> do
+                                   val <- v .: k 
+                                   return $ Map.insert (read $ T.unpack k) val m) Map.empty keys 
+    where keys = H.keys v
 
 -- Accessors
 

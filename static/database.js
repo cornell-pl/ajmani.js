@@ -27,7 +27,8 @@ Database.prototype.getTableNames = function(callback){
 
 // Returns null if table name is not found in the database
 Database.prototype.getTableByName = function(name,callback){
-    if (!this.cache){  
+    if (!this.cache){
+	console.log("Going to make get call");
 	$.ajax({
 		url: (this.url + "/table/" + name) ,
 		type: 'GET',
@@ -36,7 +37,10 @@ Database.prototype.getTableByName = function(name,callback){
 		success: function(d) { 
 		    console.log(JSON.stringify(d));
 		    this.serverVersion = d.version;
-		    callback(d);
+		    var table = new Table();
+		    table.headers = d.body.headers;
+		    table.records = d.body.records;
+		    callback(table);
 		}
 	    });
     }
