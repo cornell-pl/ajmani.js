@@ -4,16 +4,28 @@
     var t = new Table();
     t.headers = ['headers','body'];
     t.createRecord(['From:Nate','hi']);
-    t.createRecord(['From:Raghu','Grrr']);
-    t.createRecord(['From:Satvik','???']);
+    t.createRecord(['From:Raghu','Hello']);
+    t.createRecord(['From:Satvik','Yupppppp']);
     db.putTable('emails',t);
     $(function(){
-	    var tableTemplate = _.template($('#tableTemplate').html());
-	    var viewport = $('#viewport'),
+	    var tableTemplate = _.template($('#tableTemplate').html()),
+		tableNameTemplate = _.template($('#tableNameTemplate').html()),
+		viewport = $('#viewport'),
+		viewport2 = $('#viewport2'),
 		renderTable = function(name) {
-		viewport.empty().append(tableTemplate({table : db.getTableByName('emails')}));
-	    };
-	    renderTable('emails');
+		var t = db.getTableByName(name);
+                if (t !== null) {viewport.empty().append(tableTemplate({table : t}));}
+		else {viewport.empty()};
+	    },
+		getTableName = function() {
+		    viewport2.empty().append(tableNameTemplate({})).find('#formTableName').submit(function(e){
+			    var tName = $('#tableName').val();
+			    renderTable(tName);
+			    return false;
+			});
+		};
+		
+		getTableName();
 	});
 }).call(this);
 

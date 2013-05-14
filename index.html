@@ -2,10 +2,8 @@
 <head>
   <title> Dummmy Client </title>
     <link rel="stylesheet" href="static/normalize.min.css">
-    <link rel="stylesheet" href="static/main.min.css">
     <link rel="stylesheet" href="static/bootstrap.min.css">
     <link rel="stylesheet" href="static/bootstrap-responsive.min.css">
-    <link rel="stylesheet" href="static/elasticjs.css">
   <script src="static/jquery-2.0.0.min.js"></script>
   <script src="static/underscore-min.js"></script>
   <script src="static/database.js"></script>
@@ -14,7 +12,7 @@
 <script type="text/template" id="tableTemplate">
     <div class="row-fluid" style="margin-top:10%">
         <div class="span4 offset4">
-          <table class="table table-striped table-hover">
+          <table class="table table-striped table-hover table-bordered">
                 <thead>
                     <tr>
 		      <th> Id </th>
@@ -38,9 +36,21 @@
         </div>
     </div>
 </script>
+
+<script type="text/template" id="tableNameTemplate">
+    <div class="row-fluid">
+	<form class="form-search" id="formTableName">
+	  <input type="text" class="input-medium search-query" id="tableName" placeholder="Enter Table Name" autofocus>
+	  <button type="submit" class="btn">Get</button>
+	</form>
+    </div>
+</script>
+
+
 <body>
   <div class="container-fluid">
     <div class="row-fluid">
+      <div id="viewport2"> </div>
       <div id="viewport">
       </div>
     </div>
