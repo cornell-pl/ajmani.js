@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module SymLens where
+
 import Control.Category
 import Prelude hiding ((.), id)
 import qualified Data.Map as Map

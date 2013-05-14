@@ -1,12 +1,14 @@
 // Database 
 function Database(url, cache) {
-    url = typeof url !== 'undefined' ? a : 'localhost:3000';
-    cache = typeof cache !== 'undefined' ? a : false;
+    url = typeof url !== 'undefined' ? url : 'localhost:3000';
+    cache = typeof cache !== 'undefined' ? cache : false;
+    console.log(url);
+    console.log(cache);
     this.tables = {};
     this.cache = cache;
     this.url = url;
-    this.version = -1;
-    this.serverVersion = -1;
+    this.version = 0;
+    this.serverVersion = 0;
 }
 
 Database.prototype.getTableNames = function(callback){
@@ -25,16 +27,23 @@ Database.prototype.getTableNames = function(callback){
 
 // Returns null if table name is not found in the database
 Database.prototype.getTableByName = function(name,callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name,
+    if (!this.cache){
+	console.log("Going to make get call");
+	$.ajax({
+		url: (this.url + "/table/" + name) ,
 		type: 'GET',
 		data: {version: this.version},
 		dataType: 'json',
 		success: function(d) { 
+		    console.log(JSON.stringify(d));
 		    this.serverVersion = d.version;
-		    callback(d);
+		    var table = new Table();
+		    table.headers = d.body.headers;
+		    table.records = d.body.records;
+		    callback(table);
 		}
-	    })}
+	    });
+    }
     //    return (this.tables[name] || null);
 };
 
