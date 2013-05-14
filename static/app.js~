@@ -1,5 +1,28 @@
-var table = new Table();
+(function(){
+    'use strict';
+    var db = new Database();
+    var t = new Table();
+    t.headers = ['headers','body'];
+    t.createRecord(['From:Nate','hi']);
+    t.createRecord(['From:Raghu','Hello']);
+    t.createRecord(['From:Satvik','Yupppppp']);
+    db.putTable('emails',t);
+    $(function(){
+	    var tableTemplate = _.template($('#tableTemplate').html()),
+		tableNameTemplate = _.template($('#tableNameTemplate').html()),
+		viewport = $('#viewport'),
+		renderTable = function(name) {
+		viewport.empty().append(tableTemplate({table : db.getTableByName(name)}));},
+		getTableName = function() {
+		    viewport.empty().append(tableNameTemplate({})).find('#formTableName').submit(function(e){
+			    var tName = $('#tableName').val();
+			    console.log(tName);
+			    renderTable(tName);
+			    return false;
+			});
+		};
+		
+		getTableName();
+	});
+}).call(this);
 
-table.headers = ['headers','body'];
-table.createRecord(['From:Nate','hi']);
-table.createRecord(['From:Raghu','Grrr']);
