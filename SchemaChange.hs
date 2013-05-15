@@ -22,6 +22,7 @@ import qualified SymLens.Map as SM
 type Predicate = Fields -> Bool
 
 data SchemaChange  :: * -> * -> *  where
+  SwapColumn :: Int -> Int -> SchemaChange Table Table
   InsertColumn :: Header -> Field -> SchemaChange Table Table
   DeleteColumn :: Header -> Field -> SchemaChange Table Table
   Join :: SchemaChange (Table, Table) Table 
@@ -54,6 +55,8 @@ tableLens = SymLens ()
                     (\(hs, rs) () -> (Table hs rs, ()))    
   
 apply :: SchemaChange from to -> SymLens from to
+apply (SwapColumn i1 i2) = 
+  S.inv tableLens . ((SL.swapElem i1 i2) `S.prod` SM.fmmap (SL.swapElem i1 i2)) . tableLens 
 apply (InsertColumn h f) =
   S.inv tableLens . (SL.cons h `S.prod` SM.fmmap (SL.cons f)) . tableLens
 apply (DeleteColumn h f) = 

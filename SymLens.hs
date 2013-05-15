@@ -56,7 +56,6 @@ prod (SymLens d1 pr1 pl1) (SymLens d2 pr2 pl2) =
                              let (c, s2') = pl2 d s2 in
                              ((a,c), (s1', s2')))
      
-
 term :: a -> SymLens a ()
 term def = 
   SymLens def
