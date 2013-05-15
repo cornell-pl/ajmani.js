@@ -43,8 +43,12 @@ instance Parsable BL.ByteString where
   parseParam t = fmap (\a -> BL.fromChunks [a]) $ parseParam t 
 
 type Version = Int
-data Versioned a = Versioned Version a deriving (Show)
 
+-- | Versioned value.
+data Versioned a = Versioned Version a
+                 deriving (Show)
+
+-- | Versioned 1 "hello" <=> {"version": 1, body: "hello"}
 instance (ToJSON a) => ToJSON (Versioned a) where
   toJSON (Versioned v a) = object [ "version" .= v
                                   , "body"    .= a
@@ -55,6 +59,8 @@ instance (FromJSON a) => FromJSON (Versioned a) where
                         v .: "body"
   parseJSON _          = mzero
 
+-- | Convert a value to a versioned value. It is basically used to add
+-- a version to the response. It uses the version stored in the mvar.
 versioned :: MVar Version -> a -> ActionM (Versioned a)
 versioned mv a = do
   v <- liftIO $ readMVar mv
