@@ -36,9 +36,13 @@ import Control.Applicative ((<$>),(<*>))
 import Control.Monad
 
 import Data.Aeson
+
+import SymLens
+
 import qualified Data.Vector as V
 import qualified Data.HashMap.Lazy as H
 import qualified Data.Text as T
+
 -- import qualified Text.CSV as CSV -- from csv package
 
 import qualified Data.ByteString.Lazy as BS
@@ -134,3 +138,4 @@ delRecord i (Table hs rs) = Table hs $ Map.delete i rs
 --    Left _ -> Nothing-
 --    Right ((_:h):r) -> Just $ Table h (Map.fromList $ map toPair r)
 --  where
+

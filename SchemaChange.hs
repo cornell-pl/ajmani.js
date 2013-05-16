@@ -8,15 +8,21 @@ module SchemaChange
    SymLens(..)
   ) where
 
+import Control.Category
+import Prelude hiding ((.), id)
 import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (fromJust)
 import Database
-import SymLens
+import SymLens (SymLens(..), inv, prod)
+import qualified SymLens as S
+import qualified SymLens.List as SL 
+import qualified SymLens.Map as SM
 
 type Predicate = Fields -> Bool
 
 data SchemaChange  :: * -> * -> *  where
+  SwapColumn :: Int -> Int -> SchemaChange Table Table
   InsertColumn :: Header -> Field -> SchemaChange Table Table
   DeleteColumn :: Header -> Field -> SchemaChange Table Table
   Join :: SchemaChange (Table, Table) Table 
@@ -42,15 +48,19 @@ projectColumn h t@(Table hs rs) =
   case elemIndex h hs of
     Just n   -> map (!!n) (Map.elems rs) 
     Nothing  -> []
+    
+tableLens :: SymLens Table (Headers, Records)
+tableLens = SymLens ()
+                    (\(Table hs rs) () -> ((hs, rs), ()))
+                    (\(hs, rs) () -> (Table hs rs, ()))    
   
 apply :: SchemaChange from to -> SymLens from to
+apply (SwapColumn i1 i2) = 
+  S.inv tableLens . ((SL.swapElem i1 i2) `S.prod` SM.fmmap (SL.swapElem i1 i2)) . tableLens 
 apply (InsertColumn h f) =
-  SymLens (repeat f)
-          (\(Table hs rs) fs -> (Table (h:hs) $ Map.fromList $ 
-                                  map (\(a,(k,v)) -> (k,a:v)) $ zip (fs ++ repeat f) (Map.toList rs), fs ++ repeat f))
-          (\t _ -> (deleteColumn h t, projectColumn h t))
+  S.inv tableLens . (SL.cons h `S.prod` SM.fmmap (SL.cons f)) . tableLens
 apply (DeleteColumn h f) = 
-  inv (apply (InsertColumn h f))
+  S.inv (apply (InsertColumn h f))
 apply Join = 
   SymLens undefined
     (\(Table hs1 rs1, Table hs2 rs2) c -> 
@@ -75,20 +85,15 @@ apply Join =
          
 apply Decompose = 
   undefined
+  
 apply Append = 
-  SymLens Map.empty 
-          (\(Table hs1 rs1, Table hs2 rs2) _ ->
-              if hs1 /= hs2 then error "Appending tables of different schemas"
-              else foldl appendRekey (Table hs1 rs1, Map.empty) (Map.toList rs2))
-          (\(Table hs rs) cm -> ((Table hs $ Map.difference rs cm, 
-                                  Table hs $ Map.mapKeys (fromJust . flip Map.lookup cm) 
-                                           $ Map.intersection rs cm),
-                                 cm))      
-  where appendRekey (t, cm) (k, fs) = let (i, t') = createRecord fs t in (t', Map.insert i k cm)                                 
+  let hl = S.inv $ S.dup "Appending tables of different schemas" in
+  S.inv tableLens . (hl `S.prod` SM.appendInto) . S.transpose . (tableLens `S.prod` tableLens)
+                                 
 apply Split = 
-  inv (apply Append)             
+  S.inv (apply Append)             
                                   
-apply (Compose s1 s2) = compose (apply s1) (apply s2)                                  
+apply (Compose s1 s2) = S.compose (apply s1) (apply s2)                                  
 
 append :: Table -> Table -> Either String Table
 append = undefined  

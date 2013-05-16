@@ -2,12 +2,51 @@
 
 module SymLens where
 
+import Control.Category
+import Prelude hiding ((.), id)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 import Control.Category (Category)
 import qualified Control.Category as C
 
-data SymLens a b = forall c. SymLens {init :: c,
-                                      putr :: a -> c -> (b,c),
-                                      putl :: b -> c -> (a,c)}
+data SymLens a b = forall c. SymLens { state :: c,
+                                       putr :: a -> c -> (b,c),
+                                       putl :: b -> c -> (a,c) }
+
+instance Category SymLens where
+    id = idL
+    (.) = flip compose
+                        
+swap :: SymLens (a,b) (b,a)
+swap = 
+  SymLens () f f
+  where f = (\(a,b) _ -> ((b,a), ()))
+          
+assocl :: SymLens (a,(b,c)) ((a,b),c)
+assocl =
+  SymLens () 
+          (\(a,(b,c)) _ -> (((a,b),c),()))
+          (\((a,b),c) _ -> ((a,(b,c)),()))
+          
+assocr :: SymLens ((a,b),c) (a,(b,c))
+assocr = inv assocl
+
+transpose :: SymLens ((a,b),(c,d)) ((a,c),(b,d))
+transpose = assocr . ((assocl . (id `prod` swap) . assocr) `prod` id) . assocl
+
+genDup :: (Eq a) => (a -> a -> String) -> SymLens a (a,a)
+genDup errFn = 
+  SymLens () 
+          (\a _ -> ((a,a), ()))
+          (\(a,a') _ -> if a == a' then (a, ())
+                        else error (errFn a a')) 
+
+dup :: (Eq a) => String -> SymLens a (a,a)
+dup errMsg = 
+  SymLens () 
+          (\a _ -> ((a,a), ()))
+          (\(a,a') _ -> if a == a' then (a, ())
+                        else error errMsg) 
 
 compose :: SymLens a b -> SymLens b c -> SymLens a c
 compose (SymLens def1 pr1 pl1) (SymLens def2 pr2 pl2) = SymLens (def1, def2) pr pl
@@ -51,18 +90,3 @@ term def = SymLens def pr pl
 disconnect :: a -> b -> SymLens a b
 disconnect defa defb = term defa `compose` inv (term defb)
 
-rlmap :: SymLens a b -> SymLens [a] [b]
-rlmap (SymLens def pr pl) = SymLens (repeat def) pr' pl'
-  where pr' as cs = (bs, cs' ++ drop (length cs') cs)
-          where (bs, cs') = unzip $ map (uncurry pr) (zip as cs)
-        pl' bs cs = (as, cs' ++ drop (length cs') cs)
-          where (as, cs') = unzip $ map (uncurry pl) (zip bs cs) 
-
-flmap :: SymLens a b -> SymLens [a] [b]
-flmap (SymLens def pr pl) = SymLens (repeat def) pr' pl'
-  where  pr' as cs = unzip $ map (uncurry pr) (zip as cs)
-         pl' bs cs = unzip $ map (uncurry pl) (zip bs cs)
-
-instance Category SymLens where
-  id  = idL
-  (.) = flip compose
