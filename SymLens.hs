@@ -9,9 +9,10 @@ import Data.Maybe (fromMaybe)
 import Control.Category (Category)
 import qualified Control.Category as C
 
-data SymLens a b = forall c. SymLens {init :: c,
-                                      putr :: a -> c -> (b,c),
-                                      putl :: b -> c -> (a,c)}
+data SymLens a b = forall c. SymLens { state :: c,
+                                       putr :: a -> c -> (b,c),
+                                       putl :: b -> c -> (a,c) }
+
 instance Category SymLens where
     id = idL
     (.) = flip compose
