@@ -12,13 +12,14 @@ function Database(url, cache) {
 }
 
 Database.prototype.getTableNames = function(callback){
-    if (!this.cache) { $.ajax({
-		url: this.url + "/tables",
+    var dbs = this;
+    if (!dbs.cache) { $.ajax({
+		url: dbs.url + "/tables",
 		type: 'GET',
-		data: {version: this.version},
+		data: {version: dbs.version},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
@@ -27,17 +28,18 @@ Database.prototype.getTableNames = function(callback){
 
 // Returns null if table name is not found in the database
 Database.prototype.getTableByName = function(name,callback){
-    if (!this.cache){
+    var dbs = this;
+    if (!dbs.cache){
 	console.log("Going to make get call");
 	$.ajax({
-		url: (this.url + "/table/" + name) ,
+		url: (dbs.url + "/table/" + name) ,
 		type: 'GET',
-		data: {version: this.version},
+		data: {version: dbs.version},
 		dataType: 'json',
 		success: function(d) { 
 		    console.log(JSON.stringify(d));
-		    this.serverVersion = d.version;
-		    var table = new Table();
+		    dbs.serverVersion = d.version;
+		    var table = new Table(dbs);
 		    table.headers = d.body.headers;
 		    table.records = d.body.records;
 		    callback(table);
@@ -48,13 +50,14 @@ Database.prototype.getTableByName = function(name,callback){
 };
 
 Database.prototype.putTable = function(name,table,callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name,
+    var dbs = this;
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name,
 		type: 'PUT',
-		data: {version: this.version, table: JSON.stringify(table)},
+		data: {version: dbs.version, table: JSON.stringify(table)},
 		dataType: 'json',
 		success: function(d) {
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
@@ -63,13 +66,14 @@ Database.prototype.putTable = function(name,table,callback){
 };
 
 Database.prototype.delTable = function(name,callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name,
+    var dbs = this;
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name,
 		type: 'DELETE',
-		data: {version: this.version},
+		data: {version: dbs.version},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
@@ -78,104 +82,111 @@ Database.prototype.delTable = function(name,callback){
 };
 
 // Table
-function Table(){
+function Table(db){
     this.headers = [];
     this.records = {};
+    this.db = db;
 }
 
 Table.prototype.getHeaders = function(callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name + '/headers',
+    var dbs = this.db;    
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name + '/headers',
 		type: 'GET',
-		data: {version: this.version},
+		data: {version: dbs.version},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
 
-    //    return this.headers;
+    //    return dbs.headers;
 };
 
 Table.prototype.getRecords = function(callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name + '/records',
+    var dbs = this.db;
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name + '/records',
 		type: 'GET',
-		data: {version: this.version},
+		data: {version: dbs.version},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
 
-    //    return this.records;
+    //    return dbs.records;
 };
 
 // Returns null if record id is not found in the database
 Table.prototype.getRecordById = function(id,callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name + '/record/' + id.toString(),
+    var dbs = this.db;
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name + '/record/' + id.toString(),
 		type: 'GET',
-		data: {version: this.version},
+		data: {version: dbs.version},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
 
-    //    return (this.records[id] || null)
+    //    return (dbs.records[id] || null)
 };
 
 Table.prototype.putRecord = function(id,fields,callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name + '/record/' + id.toString(),
+    var dbs = this.db;
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name + '/record/' + id.toString(),
 		type: 'PUT',
-		data: {version: this.version,fields: JSON.stringify(fields)},
+		data: {version: dbs.version,fields: JSON.stringify(fields)},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
 
-    //    this.records[id] = fields;
+    //    dbs.records[id] = fields;
 };
 
 // Assuming id to start from 0
 Table.prototype.createRecord = function(fields,callback){
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name + '/record',
+    var dbs = this.db;
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name + '/record',
 		type: 'POST',
-		data: {version: this.version, fields: JSON.stringify(fields)},
+		data: {version: dbs.version, fields: JSON.stringify(fields)},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
 
-    //    var mid = max(intKeys(this.records));
+    //    var mid = max(intKeys(dbs.records));
     //    var id = mid < 0 ? 0 : mid+1;
-    //    this.records[id] = fields;
+    //    dbs.records[id] = fields;
     //    return id;
 };
 
 Table.prototype.delRecord = function(id,callback) {
-    if (!this.cache){  $.ajax({
-		url: this.url + "/table/" + name + '/record/' + id.toString(),
+    var dbs = this.db;
+    if (!dbs.cache){  $.ajax({
+		url: dbs.url + "/table/" + name + '/record/' + id.toString(),
 		type: 'DELETE',
-		data: {version: this.version},
+		data: {version: dbs.version},
 		dataType: 'json',
 		success: function(d) { 
-		    this.serverVersion = d.version;
+		    dbs.serverVersion = d.version;
 		    callback(d);
 		}
 	    });}
     
-    //    delete this.records[id];
+    //    delete dbs.records[id];
 };
 
 
