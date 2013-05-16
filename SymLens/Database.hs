@@ -6,7 +6,7 @@ import SymLens
 import Database 
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
-import Data.Tuple
+import qualified Data.Tuple as T
 
 type TableLens = SymLens Table Table
 type DatabaseLens = SymLens Database Database
@@ -30,19 +30,29 @@ liftTable m =
           
 
 liftTableLens :: Name -> TableLens -> DatabaseLens
-liftTableLens n (SymLens s pr pl) = 
-  SymLens s (doit pr) (doit pl)
-  where doit put d c = 
-            Data.Tuple.swap $ 
-                Map.mapAccumWithKey 
-                       (\c n' t -> 
-                            if n == n' then Data.Tuple.swap $ put t c 
-                            else (c,t)) 
-                       c d
+liftTableLens n (SymLens s pr pl) = SymLens s (doit pr) (doit pl)
+  where doit put d c = T.swap $ Map.mapAccumWithKey onT c d
+          where onT c n' t | n == n'   = T.swap $ put t c 
+                           | otherwise = (c,t) 
          
 rename :: Name -> Name -> DatabaseLens
-rename n1 n2 = 
-  SymLens () put put
-  where sigma n = if n == n1 then n2 else if n == n2 then n1 else n
+rename n1 n2 = SymLens () put put
+  where sigma n | n == n1   = n2
+                | n == n2   = n1
+                | otherwise = n
         put d () = (Map.mapKeys sigma d, ())
+
+drop :: Name -> DatabaseLens
+drop n = SymLens Nothing pr pl
+  where pr d c = case Map.lookup n d of
+          Just t  -> (Map.delete n d, Just t)
+          Nothing -> (d,c)
+        pl d Nothing    = (d, Nothing)
+        pl d c@(Just v) = (Map.insert n v d,c) 
+
+--  Can this be implemented using drop ??
+insert :: Name -> Table -> DatabaseLens
+insert n t = SymLens () pr pl
+  where pr d c = (Map.insert n t d, c)
+        pl d c = (Map.delete n d  , c) 
 
