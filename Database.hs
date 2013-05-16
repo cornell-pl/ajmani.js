@@ -1,3 +1,9 @@
+{-
+
+Database module which simulates an in memory database.
+
+-}
+
 {-# LANGUAGE DeriveGeneric, FlexibleInstances, OverloadedStrings #-}
 
 module Database 

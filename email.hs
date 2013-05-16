@@ -2,8 +2,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Email where
-
 import Web.Scotty
 
 import Network.Wai.Middleware.RequestLogger -- install wai-extra if you don't have this
@@ -88,8 +86,12 @@ instance Parsable BL.ByteString where
   parseParam t = fmap (\a -> BL.fromChunks [a]) $ parseParam t 
 
 type Version = Int
-data Versioned a = Versioned Version a deriving (Show)
 
+-- | Versioned value.
+data Versioned a = Versioned Version a
+                 deriving (Show)
+
+-- | Versioned 1 "hello" <=> {"version": 1, body: "hello"}
 instance (ToJSON a) => ToJSON (Versioned a) where
   toJSON (Versioned v a) = object [ "version" .= v
                                   , "body"    .= a
@@ -209,7 +211,6 @@ testUpdate = do
   let v1From3_1 = runOptometrist (3,1) emailDoc' v3From2
   print v3From2 
   print v1From3_1
-  
   
 main :: IO ()
 main = scotty 3000 $ do
