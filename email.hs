@@ -350,31 +350,31 @@ test = do
                                  let (t''', _) = pr t'' cs
                                  putStrLn $ show $ t'''
                                  
-testAppend :: IO ()
-testAppend = do 
-  let Just t = DB.getTableByName "email" emails
-  let Just t' = DB.getTableByName "moreEmail" emails
-  print t
-  print t' 
-  case SC.apply SC.Append of
-    SC.SymLens mis pr pl -> do let (u, c) = pr (t,t') mis
-                               print u 
-                               let ((u', u''), _) = pl u c
-                               print u'
-                               print u''
+-- testAppend :: IO ()
+-- testAppend = do 
+--   let Just t = DB.getTableByName "email" emails
+--   let Just t' = DB.getTableByName "moreEmail" emails
+--   print t
+--   print t' 
+--   case SC.apply SC.Append of
+--     SC.SymLens mis pr pl -> do let (u, c) = pr (t,t') mis
+--                                print u 
+--                                let ((u', u''), _) = pl u c
+--                                print u'
+--                                print u''
                                
                                
-testSplit :: IO ()
-testSplit = do 
-  let Just t = DB.getTableByName "email" emails
-  let Just t' = DB.getTableByName "moreEmail" emails
-  case SC.apply SC.Split of 
-    SC.SymLens mis pr pl -> do
-      let (u, c) = pl (t,t') mis
-      let ((v, v'), _) = pr u c
-      print v
-      print v'
-      let ((w, w'), _) = pr u mis
-      print w
-      print w'                      
+-- testSplit :: IO ()
+-- testSplit = do 
+--   let Just t = DB.getTableByName "email" emails
+--   let Just t' = DB.getTableByName "moreEmail" emails
+--   case SC.apply SC.Split of 
+--     SC.SymLens mis pr pl -> do
+--       let (u, c) = pl (t,t') mis
+--       let ((v, v'), _) = pr u c
+--       print v
+--       print v'
+--       let ((w, w'), _) = pr u mis
+--       print w
+--       print w'                      
   

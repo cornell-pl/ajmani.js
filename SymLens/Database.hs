@@ -5,7 +5,7 @@ module SymLens.Database where
 import SymLens 
 import Database 
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe,fromJust)
 import qualified Data.Tuple as T
 
 type TableLens = SymLens Table Table
@@ -56,3 +56,16 @@ insert n t = SymLens () pr pl
   where pr d c = (Map.insert n t d, c)
         pl d c = (Map.delete n d  , c) 
 
+-- Weird things happen (due to findMax which fails on empty map) if any table is an empty table
+append :: Name -> Name -> Name -> DatabaseLens
+append n1 n2 n = SymLens Map.empty pr pl
+  where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
+          (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 t) $ Map.delete n1 $ Map.delete n2 d,c')
+            where (t,c') = fst $ Map.foldlWithKey combine ((m1, Map.empty), succ $ fst $ Map.findMax m1) m2
+                  combine ((m, mc'), nextkey) k a = ((Map.insert nextkey a m,Map.insert nextkey k mc'),succ nextkey)
+          _                                                    -> (d,c)
+        pl d c = case Map.lookup n d of
+          Just (Table h m)  -> (Map.insert n1 (Table h m1) $ Map.insert n2 (Table h m2) d, c)
+            where m1 = Map.difference m c
+                  m2 = Map.mapKeys (fromJust . flip Map.lookup c) $ Map.intersection m c
+          _       -> (d,c)
