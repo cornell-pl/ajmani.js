@@ -100,7 +100,7 @@ apply (Join n1 n2 n) = undefined
 --          (Table (hs ++ hs1c ++ hs2c) m2, undefined))
 --    (\(Table hs rs) c -> undefined)
 
-apply (Decompose n1 n2 n) =
+apply (Decompose n n1 n2) =
   undefined
 
 apply (Append n1 n2 n) = DB.append n1 n2 n

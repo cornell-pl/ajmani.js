@@ -56,12 +56,13 @@ insert n t = SymLens () pr pl
   where pr d c = (Map.insert n t d, c)
         pl d c = (Map.delete n d  , c) 
 
--- Weird things happen (due to findMax which fails on empty map) if any table is an empty table
+-- Weird things happen (due to findMax which fails on empty map) if first table is an empty table
 append :: Name -> Name -> Name -> DatabaseLens
 append n1 n2 n = SymLens Map.empty pr pl
   where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
-          (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 t) $ Map.delete n1 $ Map.delete n2 d,c')
-            where (t,c') = fst $ Map.foldlWithKey combine ((m1, Map.empty), succ $ fst $ Map.findMax m1) m2
+          -- Raghu is responsible if you are not able to understand the following code :)
+          (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m) $ Map.delete n1 $ Map.delete n2 d,c')
+            where (m,c') = fst $ Map.foldlWithKey combine ((m1, Map.empty), succ $ fst $ Map.findMax m1) m2
                   combine ((m, mc'), nextkey) k a = ((Map.insert nextkey a m,Map.insert nextkey k mc'),succ nextkey)
           _                                                    -> (d,c)
         pl d c = case Map.lookup n d of
@@ -69,3 +70,26 @@ append n1 n2 n = SymLens Map.empty pr pl
             where m1 = Map.difference m c
                   m2 = Map.mapKeys (fromJust . flip Map.lookup c) $ Map.intersection m c
           _       -> (d,c)
+
+
+-- | Takes a function to filter the table on and then splits the table
+-- into two tables, first satisfying the predicate and other the rest.
+-- I doubt this is not a lens. Consider t split on f to t1 and t2. Now
+-- we insert a record r to t1 satisying ~f. Then the lens laws will be
+-- broken.
+split :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> DatabaseLens
+split on n n1 n2 = SymLens (Map.empty,Map.empty) pr pl
+  where pr d (c1,c2) = case Map.lookup n d of
+          Just (Table h m) -> (Map.insert n1 t1 $ Map.insert n2 t2 $ Map.delete n d,(c1,c2))
+            where (m1,m2) = Map.partitionWithKey on m
+                  t1 = Table h $ Map.mapKeys (transform c1) m1
+                  t2 = Table h $ Map.mapKeys (transform c2) m2
+                  transform c k = fromMaybe k $ Map.lookup k c
+          _                -> (d,(c1,c2))
+        pl d c = case (Map.lookup n1 d, Map.lookup n2 d) of
+          (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m) $ Map.delete n1 $ Map.delete n2 d,(c1,c2))
+            where (m,c2) = fst $ Map.foldlWithKey combine ((m1, Map.empty), succ $ fst $ Map.findMax m1) m2
+                  c1 = Map.mapWithKey (\k _ -> k) m1
+                  combine ((m, mc'), nextkey) k a = ((Map.insert nextkey a m, Map.insert nextkey k mc'), succ nextkey)
+          _                                                    -> (d,c)
+
