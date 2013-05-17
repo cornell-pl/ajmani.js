@@ -61,6 +61,7 @@ append :: Name -> Name -> Name -> DatabaseLens
 append n1 n2 n = SymLens Map.empty pr pl
   where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
           -- Raghu is responsible if you are not able to understand the following code :)
+          -- Let's turn the crank and make this prettier :-) --JNF
           (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m) $ Map.delete n1 $ Map.delete n2 d,c')
             where (m,c') = fst $ Map.foldlWithKey combine ((m1, Map.empty), succ $ fst $ Map.findMax m1) m2
                   combine ((m, mc'), nextkey) k a = ((Map.insert nextkey a m,Map.insert nextkey k mc'),succ nextkey)
