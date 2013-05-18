@@ -5,7 +5,7 @@ module SymLens.Database where
 import SymLens 
 import Database 
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe,fromJust)
+import Data.Maybe (fromMaybe,fromJust,maybe)
 import qualified Data.Tuple as T
 
 type TableLens = SymLens Table Table
@@ -44,26 +44,30 @@ rename n1 n2 = SymLens () put put
 
 drop :: Name -> DatabaseLens
 drop n = SymLens Nothing pr pl
-  where pr d c = case Map.lookup n d of
-          Just t  -> (Map.delete n d, Just t)
-          Nothing -> (d,c)
+  where pr d c = maybe (d,c) trans $ Map.lookup n d
+          where trans t' = (Map.delete n d, Just t')
         pl d Nothing    = (d, Nothing)
         pl d c@(Just v) = (Map.insert n v d,c) 
 
---  Can this be implemented using drop ??
+-- Can this be implemented using drop ??
+-- Keep track of added and deleted records while coming from right to left.
 insert :: Name -> Table -> DatabaseLens
-insert n t = SymLens () pr pl
-  where pr d c = (Map.insert n t d, c)
-        pl d c = (Map.delete n d  , c) 
+insert n t@(Table _ m) = SymLens Nothing pr pl
+  where pr d Nothing     = (Map.insert n t d, Nothing)
+        pr d c@(Just t') = (Map.insert n t' d, c) 
+        pl d c = maybe (d,c) trans $ Map.lookup n d
+         where trans t' = (Map.delete n d, Just t') 
 
--- Weird things happen (due to findMax which fails on empty map) if first table is an empty table
-append :: Name -> Name -> Name -> DatabaseLens
-append n1 n2 n = SymLens Map.empty pr pl
+-- Take a pred depending on which the new records will go to n1 or n2.
+append :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> DatabaseLens
+append on n1 n2 n = SymLens Map.empty pr pl
   where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
           -- Raghu is responsible if you are not able to understand the following code :)
           (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m) $ Map.delete n1 $ Map.delete n2 d,c')
-            where (m,c') = fst $ Map.foldlWithKey combine ((m1, Map.empty), succ $ fst $ Map.findMax m1) m2
-                  combine ((m, mc'), nextkey) k a = ((Map.insert nextkey a m,Map.insert nextkey k mc'),succ nextkey)
+            where (m,c') = fst $ Map.foldl combine accum [0..]
+                  accum = ((m1, Map.empty), nextK)
+                  nextK = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m1
+                  combine ((m, mc'), nextkey) k v = ((Map.insert nextkey v m, Map.insert nextkey k mc'), succ nextkey)
           _                                                    -> (d,c)
         pl d c = case Map.lookup n d of
           Just (Table h m)  -> (Map.insert n1 (Table h m1) $ Map.insert n2 (Table h m2) d, c)
@@ -76,7 +80,9 @@ append n1 n2 n = SymLens Map.empty pr pl
 -- into two tables, first satisfying the predicate and other the rest.
 -- I doubt this is not a lens. Consider t split on f to t1 and t2. Now
 -- we insert a record r to t1 satisying ~f. Then the lens laws will be
--- broken.
+-- broken.  Maintain two tables of additional records added and apply
+-- f if r is not in these table otherwise just split based on r
+-- belongs to which table.
 split :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> DatabaseLens
 split on n n1 n2 = SymLens (Map.empty,Map.empty) pr pl
   where pr d (c1,c2) = case Map.lookup n d of
