@@ -59,23 +59,36 @@ insert n t@(Table _ m) = SymLens Nothing pr pl
          where trans t' = (Map.delete n d, Just t') 
 
 -- Take a pred depending on which the new records will go to n1 or n2.
-append :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> DatabaseLens
-append on n1 n2 n = SymLens Map.empty pr pl
-  where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
-          -- Raghu is responsible if you are not able to understand the following code :)
-          -- Let's turn the crank and make this prettier :-) --JNF
-          (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m) $ Map.delete n1 $ Map.delete n2 d,c')
-            where (m,c') = fst $ Map.foldl combine accum [0..]
-                  accum = ((m1, Map.empty), nextK)
-                  nextK = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m1
-                  combine ((m, mc'), nextkey) k v = ((Map.insert nextkey v m, Map.insert nextkey k mc'), succ nextkey)
-          _                                                    -> (d,c)
-        pl d c = case Map.lookup n d of
-          Just (Table h m)  -> (Map.insert n1 (Table h m1) $ Map.insert n2 (Table h m2) d, c)
-            where m1 = Map.difference m c
-                  m2 = Map.mapKeys (fromJust . flip Map.lookup c) $ Map.intersection m c
-          _       -> (d,c)
+-- putr :: Database with (n1,n2) and without n -> Database with n and without (n1,n2) 
+-- putl :: Database with n and without (n1,n2) -> Database with (n1,n2) and without n
 
+append :: (Id -> Fields -> Bool) 
+       -> Name 
+       -> Name 
+       -> Name 
+       -> DatabaseLens
+append on n1 n2 n = SymLens (Map.empty, Map.empty) pr pl
+  where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
+          (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m') $ Map.delete n1 $ Map.delete n2 d, (lc, rc))
+            where (m', rc, _) = Map.foldlWithKey combine (m, Map.empty, maxkey + 1) m2
+                  (m, lc, maxkey) = Map.foldlWithKey combine (Map.empty, Map.empty, 0) m1
+                  combine (m, c, nextkey) k v = (Map.insert nextkey v m, Map.insert nextkey k c, nextkey+1)
+          
+          _                                                    -> (d,c)
+        pl d (lc, rc) = case Map.lookup n d of
+          Just (Table h m) -> (Map.insert n1 (Table h m1) $ Map.insert n2 (Table h m2) $ Map.delete n d, (lc', rc'))
+            where m1' = Map.mapKeys (fromJust  . flip Map.lookup lc) $ Map.intersection m lc
+                  m2' = Map.mapKeys (fromJust  . flip Map.lookup rc) $ Map.intersection m rc
+                  (m1,m2,(lc',rc'),_) 
+                     = Map.foldlWithKey combine (m1',m2',(lc,rc),(next1,next2)) 
+                         $ Map.difference (Map.difference m lc) rc
+                  combine (m1,m2,(lc',rc'),(next1,next2)) k v 
+                    | on k v = (Map.insert next1 v m1, m2, (Map.insert k next1 lc', rc'), (next1 + 1, next2))
+                    | otherwise = (m1, Map.insert next2 v m2, (lc', Map.insert k next2 rc'), (next1, next2 + 1))
+                  next1 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m1
+                  next2 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m2
+                  
+          _                                                    -> (d,(lc,rc))
 
 -- | Takes a function to filter the table on and then splits the table
 -- into two tables, first satisfying the predicate and other the rest.
@@ -85,18 +98,4 @@ append on n1 n2 n = SymLens Map.empty pr pl
 -- f if r is not in these table otherwise just split based on r
 -- belongs to which table.
 split :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> DatabaseLens
-split on n n1 n2 = SymLens (Map.empty,Map.empty) pr pl
-  where pr d (c1,c2) = case Map.lookup n d of
-          Just (Table h m) -> (Map.insert n1 t1 $ Map.insert n2 t2 $ Map.delete n d,(c1,c2))
-            where (m1,m2) = Map.partitionWithKey on m
-                  t1 = Table h $ Map.mapKeys (transform c1) m1
-                  t2 = Table h $ Map.mapKeys (transform c2) m2
-                  transform c k = fromMaybe k $ Map.lookup k c
-          _                -> (d,(c1,c2))
-        pl d c = case (Map.lookup n1 d, Map.lookup n2 d) of
-          (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m) $ Map.delete n1 $ Map.delete n2 d,(c1,c2))
-            where (m,c2) = fst $ Map.foldlWithKey combine ((m1, Map.empty), succ $ fst $ Map.findMax m1) m2
-                  c1 = Map.mapWithKey (\k _ -> k) m1
-                  combine ((m, mc'), nextkey) k a = ((Map.insert nextkey a m, Map.insert nextkey k mc'), succ nextkey)
-          _                                                    -> (d,c)
-
+split on n n1 n2 = inv $ append on n1 n2 n

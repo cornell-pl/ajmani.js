@@ -42,7 +42,7 @@ emails = DB.putTable "moreEmail" emailTable2
                                  (1, ["From:Raghu", "Greetings"])]  
         emailTable2 = DB.Table ["headers", "body"] records2
         records2    = Map.fromList [(1, ["From:Raghu", "Hello"]),
-                                  (2, ["From:Satvik", "Greetings"])]
+                                    (2, ["From:Satvik", "Greetings"])]
 
 emailsV1 :: DB.Database
 emailsV1 = emails      
@@ -378,3 +378,13 @@ test = do
 --       print w
 --       print w'                      
   
+tet :: IO ()
+tet = case append (\_ _ -> True) "email" "moreEmail" "allEmail" of
+    SymLens c pr pl -> do let (d, c') = pr emails c
+                          let (Just t) = DB.getTableByName "allEmail" d
+                          let (_, t') = DB.createRecord ["head", "testBody"] t
+                          print t'
+                          let t'' = DB.putRecord 1 ["ModHead", "ModBody"] t
+                          print $ fst $ pl (DB.putTable "allEmail" t'' d) c'
+                       
+   

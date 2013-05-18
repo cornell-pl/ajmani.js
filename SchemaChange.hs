@@ -103,7 +103,7 @@ apply (Join n1 n2 n) = undefined
 apply (Decompose n n1 n2) =
   undefined
 
-apply (Append n1 n2 n) = DB.append n1 n2 n
+apply (Append n1 n2 n) = DB.append (\_ _ -> True) n1 n2 n
 
 --  let hl = S.inv $ S.dup "Appending tables of different schemas" in
 --  S.inv tableLens . (hl `S.prod` SM.appendInto) . S.transpose . (tableLens `S.prod` tableLens)
