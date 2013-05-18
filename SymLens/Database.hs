@@ -63,6 +63,7 @@ append :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> DatabaseLens
 append on n1 n2 n = SymLens Map.empty pr pl
   where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
           -- Raghu is responsible if you are not able to understand the following code :)
+          -- Let's turn the crank and make this prettier :-) --JNF
           (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m) $ Map.delete n1 $ Map.delete n2 d,c')
             where (m,c') = fst $ Map.foldl combine accum [0..]
                   accum = ((m1, Map.empty), nextK)
