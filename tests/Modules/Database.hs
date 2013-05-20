@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances #-}
 module Modules.Database where
 
 import Control.Applicative
@@ -10,17 +10,12 @@ import Test.QuickCheck
 import Control.Monad
 
 import Database
-
-newtype BInt = BInt Int deriving (Integral, Enum, Real, Num, Ord, Eq, Show)
-
-instance Bounded BInt where
-  minBound = BInt 0
-  maxBound = BInt 50
-
+boundedInt :: Int -> Int -> Gen Int
+boundedInt lb ub = choose (lb,ub)
 instance Arbitrary Table where
   arbitrary = do
-    (BInt n) <- arbitrarySizedBoundedIntegral
-    (BInt m) <- arbitrarySizedBoundedIntegral
+    n <- boundedInt 0 20
+    m <- boundedInt 0 20
     headers <- vector n
     recs <- foldM (f n) (Map.empty) [1..m] 
     return $ Table headers recs
@@ -28,6 +23,16 @@ instance Arbitrary Table where
            recs <- vector size
            return $ Map.insert k recs a
 
+instance Arbitrary Database where
+  arbitrary = do
+    n <- boundedInt 0 10
+    foldM on Map.empty [1..n]
+   where 
+    on d _ = do
+      t <- arbitrary
+      n <- arbitrary
+      return $ Map.insert n t d
+      
 prop_create_get :: Fields -> Table -> Bool
 prop_create_get f t = Just f == getRecordById i t'
   where (i,t') = createRecord f t
