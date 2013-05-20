@@ -4,7 +4,7 @@ module SymLens.List where
 import SymLens
 import Data.List
 
-addColumn :: (Eq a) => a -> SymLens ([a], Int) [a]
+addColumn :: (Eq a, Show a) => a -> SymLens ([a], Int) [a]
 addColumn a = 
   SymLens ()
           (\(l, n) _ -> (insertAt n a l, ()))
@@ -16,19 +16,19 @@ addColumn a =
           where (l1,l2) = splitAt n l
                             
 
-cons :: a -> SymLens [a] [a]
+cons :: (Eq a, Show a) => a -> SymLens [a] [a]
 cons initA = 
   SymLens initA
           (\l a -> (a:l, a))
           (\(a:l) _ -> (l,a))
 
-hd :: SymLens [a] a
+hd :: (Eq a, Show a) => SymLens [a] a
 hd = 
   SymLens []
           (\(h:t) _ -> (h,t))
           (\h t -> (h:t,t))
               
-tl :: a -> SymLens [a] [a]
+tl :: (Eq a, Show a) => a -> SymLens [a] [a]
 tl initA = 
   SymLens initA
           (\(h:t) _ -> (t,h))
@@ -49,7 +49,7 @@ append =
           (\(l1,l2) _ -> (l1++l2, length l1))
           (\l n -> ((take n l, drop n l), n))                             
 
-rlmap :: SymLens a b -> SymLens [a] [b]
+rlmap :: (Eq a, Show a) => SymLens a b -> SymLens [a] [b]
 rlmap (SymLens def pr pl) = 
   SymLens (repeat def)
           (\as cs -> let (bs, cs') = unzip $ map (uncurry pr) (zip as cs) in
@@ -57,7 +57,7 @@ rlmap (SymLens def pr pl) =
           (\bs cs -> let (as, cs') = unzip $ map (uncurry pl) (zip bs cs) in
                      (as, cs' ++ drop (length cs') cs))
                       
-flmap :: SymLens a b -> SymLens [a] [b]
+flmap :: (Eq a, Show a) => SymLens a b -> SymLens [a] [b]
 flmap (SymLens def pr pl) = 
   SymLens []
           (\as cs -> unzip $ map (uncurry pr) (zip as (cs ++ repeat def)))                      

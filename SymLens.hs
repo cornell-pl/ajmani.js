@@ -9,10 +9,10 @@ import Data.Maybe (fromMaybe)
 import Control.Category (Category)
 import qualified Control.Category as C
 
-data SymLens a b = forall c. SymLens { state :: c,
-                                       putr :: a -> c -> (b,c),
-                                       putl :: b -> c -> (a,c) }
-
+data SymLens a b = forall c. (Eq c, Show c) => SymLens { state :: c,
+                                                         putr ::  a -> c -> (b,c),
+                                                         putl ::  b -> c -> (a,c) }
+                                                 
 instance Category SymLens where
     id = idL
     (.) = flip compose
@@ -25,12 +25,12 @@ idL = SymLens () pr pl
 inv :: SymLens a b -> SymLens b a
 inv (SymLens def pr pl) = SymLens def pl pr
 
-term :: a -> SymLens a ()
+term :: (Eq a, Show a) => a -> SymLens a ()
 term def = SymLens def pr pl
   where pr a  _ = ((), a)
         pl () a = (a, a)
 
-disconnect :: a -> b -> SymLens a b
+disconnect :: (Eq a, Eq b, Show a, Show b) => a -> b -> SymLens a b
 disconnect defa defb = term defa `compose` inv (term defb)
 
 compose :: SymLens a b -> SymLens b c -> SymLens a c
@@ -80,10 +80,10 @@ dup errMsg =
           (\(a,a') _ -> if a == a' then (a, ())
                         else error errMsg)
 
-projRight :: d -> SymLens (a,d) a
+projRight :: (Eq d, Show d) => d -> SymLens (a,d) a
 projRight def = SymLens def pr pl
   where pr     = const
         pl a d = ((a,d),d)
 
-projLeft :: d -> SymLens a (a,d)
+projLeft :: (Eq d, Show d) => d -> SymLens a (a,d)
 projLeft = inv . projRight

@@ -384,23 +384,30 @@ test = do
 tet :: IO ()
 tet = case append (\_ _ -> True) "email" "moreEmail" "allEmail" of
     SymLens c pr pl -> do let (d, c') = pr emails c
+                          print c'
                           let (Just t) = DB.getTableByName "allEmail" d
                           let (_, t') = DB.createRecord ["head", "testBody"] t
                           -- print t'
-                          let t'' = DB.putRecord 1 ["ModHead", "ModBody"] t
-                          print $ fst $ pl (DB.putTable "allEmail" t' d) c'
-                          print d                              
+                          let t'' = DB.putRecord 1 ["ModHead", "ModBody"] t'
+                          print $ fst $ pl (DB.putTable "allEmail" t'' d) c'
+                          print d                 
 
 tes :: IO ()
 tes = case split (\i _ -> i `rem` 2 == 0) "email" "emaileven" "emailodd" of
     SymLens c pr pl -> do let (d, c') = pr emails c
+                          print c'
+                          putStrLn ""
                           let (Just t) = DB.getTableByName "emaileven" d
                           let (_, t') = DB.createRecord ["New rec1", "testBody"] t
                           let (_, t'') = DB.createRecord ["New rec2", "testBody"] t'
                           -- print t'
                           -- let t'' = DB.putRecord 1 ["ModHead", "ModBody"] t
-                          print d                              
-                          print $ fst $ pl (DB.putTable "emaileven" t'' d) c'
+                          let d' = DB.putTable "emaileven" t'' d
+                          print d 
+                          putStrLn ""           
+                          print d'
+                          putStrLn ""                  
+                          print $ fst $ pl d' c'
                           
 
    
