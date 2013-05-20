@@ -37,7 +37,7 @@ drop n = SymLens Nothing pr pl
 -- Keep track of added and deleted records while coming from right to left.
 insert :: Name -> Table -> DatabaseLens
 insert n t@(Table _ m) = SymLens Nothing pr pl
-  where pr d Nothing     = (Map.insert n t d, Nothing)
+  where pr d Nothing     = (Map.insert n t d, Just t)
         pr d c@(Just t') = (Map.insert n t' d, c) 
         pl d c = maybe (d,c) trans $ Map.lookup n d
          where trans t' = (Map.delete n d, Just t') 

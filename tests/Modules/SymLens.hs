@@ -36,7 +36,7 @@ genNotContainsTableDB ns gd = do
   foldM (\ a v -> return $ Map.delete v a) db ns
 
 genSameHeaderTable :: Table -> Gen Table
-genSameHeaderTable (Table hs rs) = do
+genSameHeaderTable (Table hs _) = do
   let n = length hs
   m <- choose (0,20 :: Int)
   recs <- foldM (f n) (Map.empty) [1..m]
