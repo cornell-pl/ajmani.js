@@ -38,8 +38,11 @@ emails :: DB.Database
 emails = DB.putTable "moreEmail" emailTable2 
        $ DB.putTable "email" emailTable DB.empty
   where emailTable = DB.Table ["headers", "body"] records
-        records    = Map.fromList [(0, ["From:Satvik", "Hello"]),
-                                 (1, ["From:Raghu", "Greetings"])]  
+        records    = Map.fromList [ (0, ["From:Satvik", "Hello"])
+                                  , (1, ["From:Raghu", "Greetings"])
+                                  , (2, ["From:Raghu", "Tomorrow afternoon"])
+                                  , (4, ["From:Nate", "Lets turn the crank"])
+                                  , (5, ["From:Raghu", ":)"])]
         emailTable2 = DB.Table ["headers", "body"] records2
         records2    = Map.fromList [(1, ["From:Raghu", "Hello"]),
                                     (2, ["From:Satvik", "Greetings"])]
@@ -387,5 +390,17 @@ tet = case append (\_ _ -> True) "email" "moreEmail" "allEmail" of
                           let t'' = DB.putRecord 1 ["ModHead", "ModBody"] t
                           print $ fst $ pl (DB.putTable "allEmail" t' d) c'
                           print d                              
-                       
+
+tes :: IO ()
+tes = case split (\i _ -> i `rem` 2 == 0) "email" "emaileven" "emailodd" of
+    SymLens c pr pl -> do let (d, c') = pr emails c
+                          let (Just t) = DB.getTableByName "emaileven" d
+                          let (_, t') = DB.createRecord ["New rec1", "testBody"] t
+                          let (_, t'') = DB.createRecord ["New rec2", "testBody"] t'
+                          -- print t'
+                          -- let t'' = DB.putRecord 1 ["ModHead", "ModBody"] t
+                          print d                              
+                          print $ fst $ pl (DB.putTable "emaileven" t'' d) c'
+                          
+
    

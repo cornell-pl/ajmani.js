@@ -34,7 +34,7 @@ data SchemaChange  :: * -> * -> *  where
   Join :: Name -> Name -> Name -> SchemaChange Database Database
   Decompose :: Name -> Name -> Name -> SchemaChange Database Database
   Append :: Name -> Name -> Name -> SchemaChange Database Database
-  Split :: Name -> Name -> Name -> SchemaChange Database Database
+  Split :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> SchemaChange Database Database
   Compose :: SchemaChange a b -> SchemaChange b c -> SchemaChange a c
 
 insertColumn :: Header -> Field -> Table -> Table
@@ -108,7 +108,7 @@ apply (Append n1 n2 n) = DB.append (\_ _ -> True) n1 n2 n
 --  let hl = S.inv $ S.dup "Appending tables of different schemas" in
 --  S.inv tableLens . (hl `S.prod` SM.appendInto) . S.transpose . (tableLens `S.prod` tableLens)
 
-apply (Split n1 n2 n3) = undefined
+apply (Split on n n1 n2) = DB.split on n n1 n2
 --  S.inv (apply Append)
 
 apply (Compose s1 s2) = S.compose (apply s1) (apply s2)
