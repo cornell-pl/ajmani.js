@@ -410,4 +410,27 @@ tes = case split (\i _ -> i `rem` 2 == 0) "email" "emaileven" "emailodd" of
                           print $ fst $ pl d' c'
                           
 
-   
+
+emailTable = DB.Table ["headers", "body", "Star"] records
+ where records    = Map.fromList [ (0, ["From:Satvik", "Hello","1"])
+                                 , (1, ["From:Raghu", "Greetings","3"])
+                                 , (4, ["From:Nate", "Lets turn the crank","5"])
+                                 ]
+
+
+tei :: IO ()
+tei = case insert "semail" emailTable of
+  (SymLens i pr pl) -> do
+    print "Email"
+    print emails
+    let (d,c) = pl emails i
+    print "After pl"
+    print d
+    print "Complement"
+    print c
+    let (d',c') = pr d c
+    print "After pr"
+    print d'
+    print "Complement"
+    print c'
+       

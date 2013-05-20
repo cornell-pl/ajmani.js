@@ -15,11 +15,13 @@ import Database
 
 prop_law1 :: (Eq a, Arbitrary a, Arbitrary b) => SymLens a b -> a -> Bool
 prop_law1 (SymLens d pr pl) a = case pr a d of
-  (b,c) -> (fst $ pl b c) == a
+  (b,c) -> case pl b c of
+    (a',c') -> a'==a && c'==c
 
 prop_law2 :: (Eq b, Arbitrary a, Arbitrary b) => SymLens a b -> b -> Bool
 prop_law2 (SymLens d pr pl) b = case pl b d of
-  (a,c) -> (fst $ pr a c) == b
+  (a,c) -> case pr a c of
+    (b',c') ->b==b' && c==c'
 
 -- Tests for SumLens.Database
 genContainsTableDB :: [Name] -> Gen Database -> Gen Database
@@ -54,15 +56,22 @@ genSameHeaderTableDB ns gd = do
            t' <- genSameHeaderTable t
            return $ Map.insert n t' d
             
-test_rename :: Property
-test_rename = 
+test_rename1 :: Property
+test_rename1 = 
   forAll (genContainsTableDB ["test1","test2"] arbitrary) laws
     where
       dl = SD.rename "test1" "test2"
-      laws db = prop_law1 dl db && prop_law2 dl db 
+      laws db = prop_law1 dl db
 
-test_insert :: Property
-test_insert =
+test_rename2 :: Property
+test_rename2 = 
+  forAll (genContainsTableDB ["test1","test2"] arbitrary) laws
+    where
+      dl = SD.rename "test1" "test2"
+      laws db = prop_law2 dl db 
+
+test_insert1 :: Property
+test_insert1 =
   forAll dbt laws
     where
       dbt = do
@@ -70,36 +79,75 @@ test_insert =
         t <- arbitrary
         return (db,t)
       dl = SD.insert "test"
-      laws (db,t) = prop_law1 (dl t) db && prop_law2 (dl t) db 
+      laws (db,t) = prop_law1 (dl t) db
 
-test_drop :: Property
-test_drop =
+test_insert2 :: Property
+test_insert2 =
+  forAll dbt laws
+    where
+      dbt = do
+        db <- genContainsTableDB ["test"] arbitrary
+        t <- arbitrary
+        return (db,t)
+      dl = SD.insert "test"
+      laws (db,t) = prop_law2 (dl t) db 
+
+test_drop1 :: Property
+test_drop1 =
   forAll (genContainsTableDB ["test"] arbitrary) laws
     where
       dl = SD.drop "test"
-      laws db = prop_law1 dl db && prop_law2 dl db 
+      laws db = prop_law1 dl db
 
-test_append :: Property
-test_append =
+test_drop2 :: Property
+test_drop2 =
+  forAll (genNotContainsTableDB ["test"] arbitrary) laws
+    where
+      dl = SD.drop "test"
+      laws db = prop_law2 dl db 
+
+test_append1 :: Property
+test_append1 =
   forAll (genSameHeaderTableDB ["test1","test2"] $ genNotContainsTableDB ["test"] arbitrary) laws
     where
       dl = SD.append (\i _ -> i `rem` 2 ==0) "test1" "test2" "test"
-      laws db = prop_law1 dl db && prop_law2 dl db
+      laws db = prop_law1 dl db
 
-test_split :: Property
-test_split =
+test_append2 :: Property
+test_append2 =
+  forAll (genContainsTableDB ["test"] arbitrary) laws
+    where
+      dl = SD.append (\i _ -> i `rem` 2 ==0) "test1" "test2" "test"
+      laws db =  prop_law2 dl db
+
+
+test_split1 :: Property
+test_split1 =
   forAll (genContainsTableDB ["test"] $ genNotContainsTableDB ["test1","test2"] arbitrary) laws
     where
       dl = SD.split (\i _ -> i `rem` 2 ==0) "test" "test1" "test2"
-      laws db = prop_law1 dl db && prop_law2 dl db
+      laws db = prop_law1 dl db
+
+test_split2 :: Property
+test_split2 =
+  forAll (genSameHeaderTableDB ["test1","test2"] $ genNotContainsTableDB ["test"] arbitrary) laws
+    where
+      dl = SD.split (\i _ -> i `rem` 2 ==0) "test" "test1" "test2"
+      laws db = prop_law2 dl db
 
 testLaws :: Test
 testLaws = testGroup "Lens Laws:"
-             [ testProperty "Renaming of tables" test_rename
-             , testProperty "Inserting table" test_insert
-             , testProperty "Deleting table" test_drop
-             , testProperty "Appending of tables" test_append
-             , testProperty "Splitting of tables" test_split
+             [
+               testProperty "Renaming of tables Law 1" test_rename1
+             , testProperty "Renaming of tables Law 2" test_rename2
+             , testProperty "Inserting table Law 1" test_insert1
+             , testProperty "Inserting table Law 2" test_insert2
+             , testProperty "Deleting table Law 1" test_drop1
+             , testProperty "Deleting table Law 2" test_drop2               
+             , testProperty "Appending of tables Law 1" test_append1
+             , testProperty "Appending of tables Law2" test_append2              
+             , testProperty "Splitting of tables Law 1" test_split1
+             , testProperty "Splitting of tables Law 2" test_split2
              ]
 
 tests = [ testLaws
