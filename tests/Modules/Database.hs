@@ -6,15 +6,27 @@ import qualified Data.Map as Map
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
+import Data.List
 
 import Control.Monad
 
 import Database
+
 boundedInt :: Int -> Int -> Gen Int
 boundedInt lb ub = choose (lb,ub)
+
+uniqueList :: (Eq a, Arbitrary a) => Int -> Gen [a]
+uniqueList n = unique n []
+  where
+    unique n ls | n <= 0 =  return ls
+                | otherwise = do
+                    el <- arbitrary
+                    -- unique (n-1) (el:ls)
+                    if el `elem` ls then unique n ls else unique (n-1) (el:ls)
+  
 instance Arbitrary Table where
   arbitrary = do
-    n <- boundedInt 0 20
+    n <- boundedInt 0 5
     m <- boundedInt 0 20
     headers <- vector n
     recs <- foldM (f n) (Map.empty) [1..m] 
