@@ -70,25 +70,26 @@ append :: (Id -> Fields -> Bool)
 append on n1 n2 n = SymLens (Map.empty, Map.empty) pr pl
   where pr d c = case (Map.lookup n1 d, Map.lookup n2 d) of
           (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> (Map.insert n (Table h1 m') $ Map.delete n1 $ Map.delete n2 d, (lc, rc))
-            where (m', rc, _) = Map.foldlWithKey combine (m, Map.empty, maxkey + 1) m2
+            where (m', rc, _) = Map.foldlWithKey combine (m, Map.empty, maxkey) m2
                   (m, lc, maxkey) = Map.foldlWithKey combine (Map.empty, Map.empty, 0) m1
                   combine (m, c, nextkey) k v = (Map.insert nextkey v m, Map.insert nextkey k c, nextkey+1)
           
           _                                                    -> (d,c)
-        pl d (lc, rc) = case Map.lookup n d of
+        pl d c@(lc, rc) = case Map.lookup n d of
           Just (Table h m) -> (Map.insert n1 (Table h m1) $ Map.insert n2 (Table h m2) $ Map.delete n d, (lc', rc'))
             where m1' = Map.mapKeys (fromJust  . flip Map.lookup lc) $ Map.intersection m lc
                   m2' = Map.mapKeys (fromJust  . flip Map.lookup rc) $ Map.intersection m rc
                   (m1,m2,(lc',rc'),_) 
                      = Map.foldlWithKey combine (m1',m2',(lc,rc),(next1,next2)) 
-                         $ Map.difference (Map.difference m lc) rc
+                         $ rest
+                  rest = Map.difference (Map.difference m lc) rc
                   combine (m1,m2,(lc',rc'),(next1,next2)) k v 
                     | on k v = (Map.insert next1 v m1, m2, (Map.insert k next1 lc', rc'), (next1 + 1, next2))
                     | otherwise = (m1, Map.insert next2 v m2, (lc', Map.insert k next2 rc'), (next1, next2 + 1))
-                  next1 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m1
-                  next2 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m2
+                  next1 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m1'
+                  next2 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m2'
                   
-          _                                                    -> (d,(lc,rc))
+          _                                                    -> (d,c)
 
 -- | Takes a function to filter the table on and then splits the table
 -- into two tables, first satisfying the predicate and other the rest.

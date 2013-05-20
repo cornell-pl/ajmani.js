@@ -383,8 +383,9 @@ tet = case append (\_ _ -> True) "email" "moreEmail" "allEmail" of
     SymLens c pr pl -> do let (d, c') = pr emails c
                           let (Just t) = DB.getTableByName "allEmail" d
                           let (_, t') = DB.createRecord ["head", "testBody"] t
-                          print t'
+                          -- print t'
                           let t'' = DB.putRecord 1 ["ModHead", "ModBody"] t
-                          print $ fst $ pl (DB.putTable "allEmail" t'' d) c'
+                          print $ fst $ pl (DB.putTable "allEmail" t' d) c'
+                          print d                              
                        
    
