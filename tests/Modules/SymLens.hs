@@ -241,6 +241,9 @@ testLaws = testGroup "Lens Laws:"
              , testProperty "Delete Column Law 2" test_deleteColumn2
              , testProperty "Rename Column Law 1" test_renameColumn1
              , testProperty "Rename Column Law 2" test_renameColumn2
+             , testProperty "Rename Swap Law 1" test_swapColumn1
+             , testProperty "Rename Swap Law 2" test_swapColumn2
+
              ]
 
 tests = [ testLaws

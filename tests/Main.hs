@@ -8,6 +8,7 @@ import Test.QuickCheck
 
 main :: IO ()
 main = do
+  sample $ D.uniqueList 20
   putStrLn $ "Running Tests"
   defaultMain tests
 

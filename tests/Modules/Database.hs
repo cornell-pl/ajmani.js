@@ -15,20 +15,22 @@ import Database
 boundedInt :: Int -> Int -> Gen Int
 boundedInt lb ub = choose (lb,ub)
 
-uniqueList :: (Eq a, Arbitrary a) => Int -> Gen [a]
-uniqueList n = unique n []
+-- Very inefficient but deterministic running time
+uniqueList :: Int -> Gen [String]
+uniqueList n = unique n 0 []
   where
-    unique n ls | n <= 0 =  return ls
-                | otherwise = do
-                    el <- arbitrary
-                    -- unique (n-1) (el:ls)
-                    if el `elem` ls then unique n ls else unique (n-1) (el:ls)
+    unique n s ls | n <= 0 =  return ls
+                  | otherwise = do
+                    el <- vector s
+                    let next = nub $ permutations el
+                    let n' = n - (length next)
+                    unique n' (s+1) (ls ++ take n next)
   
 instance Arbitrary Table where
   arbitrary = do
     n <- boundedInt 0 5
     m <- boundedInt 0 20
-    headers <- vector n
+    headers <- uniqueList 5
     recs <- foldM (f n) (Map.empty) [1..m] 
     return $ Table headers recs
    where f size a k = do
