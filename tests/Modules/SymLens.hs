@@ -11,6 +11,7 @@ import qualified Data.List as List
 import Modules.Database () 
 import SymLens
 import qualified SymLens.Database as SD
+import qualified SymLens.Table as ST
 import Database
 
 prop_law1 :: (Eq a, Arbitrary a, Arbitrary b) => SymLens a b -> a -> Bool
@@ -24,7 +25,7 @@ prop_law2 (SymLens d pr pl) b = case pl b d of
     (b',c') ->b==b' && c==c'
 
 -- Tests for SumLens.Database
-genContainsTableDB :: [Name] -> Gen Database -> Gen Database
+genContainsTableDB :: [Header] -> Gen Database -> Gen Database
 genContainsTableDB ns gd = do
   db <- gd
   foldM on db ns
@@ -32,6 +33,35 @@ genContainsTableDB ns gd = do
             t <- arbitrary
             return $ Map.insert n t d
 
+genContainsColumn :: [Header] -> Gen Table -> Gen Table
+genContainsColumn ns gt = do
+  t <- gt
+  foldM on t ns
+    where on :: Table -> Header -> Gen Table
+          on t@(Table hs rs) n | n `List.elem` hs = return t
+                               | otherwise        = do
+                                 rs'  <- mapMM with rs
+                                 return $ Table (n:hs) rs'
+          with cs = do
+            c <- arbitrary
+            return $ c:cs
+          mapMM :: (Monad m, Ord k) => (a -> m b) -> Map.Map k a -> m (Map.Map k b)
+          mapMM f m = do
+            o <- mapM f' $ Map.toList m
+            return $ Map.fromList o
+            where f' (a,b) = do
+                    b' <- f b
+                    return (a,b')
+            
+
+genNotContainsColumn :: [Name] -> Gen Table -> Gen Table
+genNotContainsColumn ns gt = do
+  t <- gt
+  return $ foldl on t ns
+    where on t@(Table hs rs) n = maybe t (removeColumn t) $ List.elemIndex n hs
+          removeColumn (Table hs rs) i = Table (delete i hs) $ Map.map (delete i) rs
+          delete n fs = take n fs ++ drop (n+1) fs  
+          
 genNotContainsTableDB :: [Name] -> Gen Database -> Gen Database
 genNotContainsTableDB ns gd = do
   db <- gd
@@ -135,6 +165,63 @@ test_split2 =
       dl = SD.split (\i _ -> i `rem` 2 ==0) "test" "test1" "test2"
       laws db = prop_law2 dl db
 
+
+test_insertColumn1 :: Property
+test_insertColumn1 =
+    forAll (genNotContainsColumn ["test"] arbitrary) laws
+    where
+      dl = ST.insertColumn "test" "def" 
+      laws db = prop_law1 dl db
+
+test_insertColumn2 :: Property
+test_insertColumn2 =
+    forAll (genContainsColumn ["test"] arbitrary) laws
+    where
+      dl = ST.insertColumn "test" "def" 
+      laws db = prop_law2 dl db
+
+test_deleteColumn1 :: Property
+test_deleteColumn1 =
+    forAll (genContainsColumn ["test"] arbitrary) laws
+    where
+      dl = ST.deleteColumn "test" "def" 
+      laws db = prop_law1 dl db
+
+test_deleteColumn2 :: Property
+test_deleteColumn2 =
+    forAll (genNotContainsColumn ["test"] arbitrary) laws
+    where
+      dl = ST.deleteColumn "test" "def" 
+      laws db = prop_law2 dl db
+
+test_renameColumn1 :: Property
+test_renameColumn1 =
+    forAll (genContainsColumn ["test"] arbitrary) laws
+    where
+      dl = ST.renameColumn "test" "test1" 
+      laws db = prop_law1 dl db
+
+test_renameColumn2 :: Property
+test_renameColumn2 =
+    forAll (genContainsColumn ["test1"] arbitrary) laws
+    where
+      dl = ST.renameColumn "test" "test1" 
+      laws db = prop_law2 dl db
+
+test_swapColumn1 :: Property
+test_swapColumn1 =
+    forAll (genContainsColumn ["test","test1"] arbitrary) laws
+    where
+      dl = ST.swapColumn "test" "test1" 
+      laws db = prop_law1 dl db
+
+test_swapColumn2 :: Property
+test_swapColumn2 =
+    forAll (genContainsColumn ["test","test1"] arbitrary) laws
+    where
+      dl = ST.swapColumn "test" "test1" 
+      laws db = prop_law2 dl db
+
 testLaws :: Test
 testLaws = testGroup "Lens Laws:"
              [
@@ -148,6 +235,12 @@ testLaws = testGroup "Lens Laws:"
              , testProperty "Appending of tables Law2" test_append2              
              , testProperty "Splitting of tables Law 1" test_split1
              , testProperty "Splitting of tables Law 2" test_split2
+             , testProperty "Insert Column Law 1" test_insertColumn1
+             , testProperty "Insert Column Law 2" test_insertColumn2
+             , testProperty "Delete Column Law 1" test_deleteColumn1
+             , testProperty "Delete Column Law 2" test_deleteColumn2
+             , testProperty "Rename Column Law 1" test_renameColumn1
+             , testProperty "Rename Column Law 2" test_renameColumn2
              ]
 
 tests = [ testLaws
