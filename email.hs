@@ -29,6 +29,7 @@ import qualified Database as DB
 import qualified SchemaChange as SC
 import SymLens (SymLens(..))
 import SymLens.Database
+import SymLens.Table
 import qualified SymLens as S
 import qualified Data.List as List
 import Control.Applicative ((<$>),(<*>))
@@ -333,13 +334,13 @@ main = scotty 3000 $ do
                            json $ Versioned ver $  T.pack "Success"
           Nothing    -> json $ Versioned ver $ T.pack "Failure"
         
-testDelete :: IO ()
-testDelete = do
-  let Just t = DB.getTableByName "email" emails
-  let t' = SC.insertColumn "starred" "false" t
-  let t'' = SC.deleteColumn "starred" t'
-  putStrLn $ show $ t'
-  putStrLn $ show $ t''
+--testDelete :: IO ()
+--testDelete = do
+--  let Just t = DB.getTableByName "email" emails
+--  let t' = SC.insertColumn "starred" "false" t
+--  let t'' = SC.deleteColumn "starred" t'
+--  putStrLn $ show $ t'
+--  putStrLn $ show $ t''
     
 -- Testing
 test :: IO ()
@@ -349,7 +350,7 @@ test = do
     (SC.SymLens mis pr pl) -> do let (t', _) = pr t mis 
                                  putStrLn $ show $ t'
                                  let (t'', cs) = pl t' mis
-                                 putStrLn$ show $ SC.deleteColumn "starred" t'
+--                                 putStrLn$ show $ SC.deleteColumn "starred" t'
                                  let (t''', _) = pr t'' cs
                                  putStrLn $ show $ t'''
                                  
@@ -434,3 +435,17 @@ tei = case insert "semail" emailTable of
     print "Complement"
     print c'
        
+       
+tej :: IO ()
+tej =  
+  let l = insertColumn "test" "def" in
+  let t = DB.Table [] (Map.fromList [(1,[]),(2,[]),(3,[]),(4,[])]) in
+  case l of
+    (SymLens d pr pl) ->
+      let (b,c) = pr t d in
+      let (a,c') = pl b c in
+      do print a 
+         print a;
+         putStrLn ""
+         print c
+         print c'

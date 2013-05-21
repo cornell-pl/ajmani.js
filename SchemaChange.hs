@@ -3,8 +3,6 @@
 module SchemaChange
   (SchemaChange(..),
    apply,
-   insertColumn,
-   deleteColumn,
    SymLens(..)
   ) where
 
@@ -23,6 +21,8 @@ import qualified SymLens.Database as DB
 
 type Predicate = Fields -> Bool
 
+-- TODO SwapColumn, RenameColumn, Join-Decompose
+
 data SchemaChange  :: * -> * -> *  where
   SwapColumn :: Int -> Int -> SchemaChange Table Table -- better to have Header -> Header -> SchemaChange Table Table even if it is not possible to implement combinatorially
   InsertColumn :: Header -> Field -> SchemaChange Table Table
@@ -36,24 +36,6 @@ data SchemaChange  :: * -> * -> *  where
   Append :: Name -> Name -> Name -> SchemaChange Database Database
   Split :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> SchemaChange Database Database
   Compose :: SchemaChange a b -> SchemaChange b c -> SchemaChange a c
-
-insertColumn :: Header -> Field -> Table -> Table
-insertColumn h f t =
-  let Table hs rs = deleteColumn h t in
-  Table (h : hs) (Map.map (f:) rs)
-
-deleteColumn :: Header -> Table -> Table
-deleteColumn h t@(Table hs rs) =
-  case elemIndex h hs of
-    Just n   -> Table (delete n hs) $ Map.map (delete n) rs
-    Nothing  -> t
-  where delete n fs = take n fs ++ drop (n+1) fs
-
-projectColumn :: Header -> Table -> [Field]
-projectColumn h t@(Table hs rs) =
-  case elemIndex h hs of
-    Just n   -> map (!!n) (Map.elems rs)
-    Nothing  -> []
 
 tableLens :: SymLens Table (Headers, Records)
 tableLens = SymLens ()
