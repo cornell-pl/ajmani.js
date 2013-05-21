@@ -10,7 +10,11 @@ import qualified Data.List as List
 insertColumn :: Header -> Field -> SymLens Table Table
 insertColumn h f = 
   SymLens Map.empty
-          (\(Table hs rs) m -> (Table (h:hs) $ Map.mapWithKey (\k fs -> (fromMaybe f $ Map.lookup k m) : fs) rs, m))
+          (\(Table hs rs) m -> let insertFn m' k fs = case Map.lookup k m of
+                                                        Just f' -> (m', f':fs)
+                                                        Nothing -> (Map.insert k f m', f:fs) in
+                               let (m', rs') = Map.mapAccumWithKey insertFn m rs in
+                               (Table (h:hs) rs', m'))
           (\(Table hs rs) _ -> case List.elemIndex h hs of
                                  Just n  -> let (_, hs') = extract n hs in
                                             let (m, rs') = Map.mapAccumWithKey (extractIntoMap n) Map.empty rs in

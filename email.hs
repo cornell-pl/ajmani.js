@@ -435,3 +435,17 @@ tei = case insert "semail" emailTable of
     print "Complement"
     print c'
        
+       
+tej :: IO ()
+tej =  
+  let l = insertColumn "test" "def" in
+  let t = DB.Table [] (Map.fromList [(1,[]),(2,[]),(3,[]),(4,[])]) in
+  case l of
+    (SymLens d pr pl) ->
+      let (b,c) = pr t d in
+      let (a,c') = pl b c in
+      do print a 
+         print a;
+         putStrLn ""
+         print c
+         print c'
