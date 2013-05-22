@@ -166,6 +166,8 @@ test_split2 =
       laws db = prop_law2 dl db
 
 
+-- Laws tests for SymLens.Table
+
 test_insertColumn1 :: Property
 test_insertColumn1 =
     forAll (genNotContainsColumn ["test"] arbitrary) laws
@@ -221,6 +223,16 @@ test_swapColumn2 =
     where
       dl = ST.swapColumn "test" "test1" 
       laws db = prop_law2 dl db
+
+-- Specific tests for SymLens.Table
+
+-- test_insertColumn :: Property
+-- test_insertColumn =
+--   forAll (genNotContainsColumn ["test"] arbitrary) $ laws dl
+--     where
+--       dl = ST.insertColumn "test" "def" 
+--       laws (SymLens def pr pl) t = case pr t def of
+--         (t', c) ->
 
 testLaws :: Test
 testLaws = testGroup "Lens Laws:"

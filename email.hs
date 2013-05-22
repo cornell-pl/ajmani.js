@@ -188,12 +188,12 @@ emailDoc =
    (2, Map.empty)]
   where email1 = SC.apply $ SC.InsertColumn "timestamp" "Jan 1 1970"
         moreEmail1 = SC.apply $ SC.InsertColumn "starred" "false"
-        email2 = SC.apply $ SC.Compose (SC.Compose (SC.Compose (SC.SwapColumn 0 2) (SC.DeleteColumn "body" "Hello"))
-                                       (SC.InsertColumn "priority" "low")) (SC.SwapColumn 1 2)
+        email2 = SC.apply $ SC.Compose (SC.Compose (SC.Compose (SC.SwapColumn "timestamp" "body") (SC.DeleteColumn "body" "Hello"))
+                                       (SC.InsertColumn "priority" "low")) (SC.SwapColumn "timestamp" "header")
 
-        moreEmail2 = SC.apply $ SC.Compose (SC.Compose (SC.Compose (SC.SwapColumn 0 2) 
+        moreEmail2 = SC.apply $ SC.Compose (SC.Compose (SC.Compose (SC.SwapColumn "starred" "body") 
                                                        (SC.DeleteColumn "body" "Turn the crank!")) 
-                                           (SC.InsertColumn "priority" "deadline-grade")) (SC.SwapColumn 1 2)
+                                           (SC.InsertColumn "priority" "deadline-grade")) (SC.SwapColumn "starred" "header")
                                             
 testEmail :: IO ()
 testEmail = do

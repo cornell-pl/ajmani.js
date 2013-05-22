@@ -18,13 +18,14 @@ import qualified SymLens.List as SL
 import qualified SymLens.Map as SM
 import SymLens.Database (DatabaseLens, TableLens)
 import qualified SymLens.Database as DB
+import qualified SymLens.Table as T
 
 type Predicate = Fields -> Bool
 
 -- TODO SwapColumn, RenameColumn, Join-Decompose
 
 data SchemaChange  :: * -> * -> *  where
-  SwapColumn :: Int -> Int -> SchemaChange Table Table -- better to have Header -> Header -> SchemaChange Table Table even if it is not possible to implement combinatorially
+  SwapColumn :: Header -> Header -> SchemaChange Table Table
   InsertColumn :: Header -> Field -> SchemaChange Table Table
   DeleteColumn :: Header -> Field -> SchemaChange Table Table
   RenameColumn :: Header -> Header -> SchemaChange Table Table
@@ -43,16 +44,13 @@ tableLens = SymLens ()
                     (\(hs, rs) () -> (Table hs rs, ()))
 
 apply :: SchemaChange from to -> SymLens from to
-apply (SwapColumn i1 i2) =
-  S.inv tableLens . ((SL.swapElem i1 i2) `S.prod` SM.fmmap (SL.swapElem i1 i2)) . tableLens
+apply (SwapColumn i1 i2) = T.swapColumn i1 i2
   
-apply (InsertColumn h f) =
-  S.inv tableLens . (SL.cons h `S.prod` SM.fmmap (SL.cons f)) . tableLens
+apply (InsertColumn h f) = T.insertColumn h f
   
-apply (DeleteColumn h f) =
-  S.inv (apply (InsertColumn h f))
+apply (DeleteColumn h f) = T.deleteColumn h f
 
-apply (RenameColumn h1 h2) = undefined
+apply (RenameColumn h1 h2) = T.renameColumn h1 h2
 
 apply (InsertTable n t) = DB.insert n t
 
