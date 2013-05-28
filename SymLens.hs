@@ -10,8 +10,8 @@ import Control.Category (Category)
 import qualified Control.Category as C
 
 data SymLens a b = forall c. (Eq c, Show c) => SymLens { state :: c,
-                                                         putr ::  a -> c -> (b,c),
-                                                         putl ::  b -> c -> (a,c) }
+                                                         putr ::  a -> StateT c IO b,
+                                                         putl ::  b -> StateT c IO a }
                                                  
 instance Category SymLens where
     id = idL
