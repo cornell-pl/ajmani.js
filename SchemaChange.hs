@@ -14,8 +14,6 @@ import Data.Maybe (fromJust)
 import Database.Memory
 import SymLens (SymLens(..), inv, prod)
 import qualified SymLens as S
-import qualified SymLens.List as SL
-import qualified SymLens.Map as SM
 import SymLens.Database (DatabaseLens, TableLens)
 import qualified SymLens.Database as DB
 import qualified SymLens.Table as T
@@ -38,10 +36,10 @@ data SchemaChange  :: * -> * -> *  where
   Split :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> SchemaChange Database Database
   Compose :: SchemaChange a b -> SchemaChange b c -> SchemaChange a c
 
-tableLens :: SymLens Table (Headers, Records)
-tableLens = SymLens ()
-                    (\(Table hs rs) () -> ((hs, rs), ()))
-                    (\(hs, rs) () -> (Table hs rs, ()))
+-- tableLens :: SymLens Table (Headers, Records)
+-- tableLens = SymLens ()
+--                     (\(Table hs rs) () -> ((hs, rs), ()))
+--                     (\(hs, rs) () -> (Table hs rs, ()))
 
 apply :: SchemaChange from to -> SymLens from to
 apply (SwapColumn i1 i2) = T.swapColumn i1 i2

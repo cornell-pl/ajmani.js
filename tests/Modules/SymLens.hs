@@ -3,7 +3,9 @@ module Modules.SymLens where
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
+import Test.QuickCheck.Monadic
 
+import Control.Monad.State
 import Control.Monad
 import qualified Data.Map as Map
 import qualified Data.List as List
@@ -14,15 +16,19 @@ import qualified SymLens.Database as SD
 import qualified SymLens.Table as ST
 import Database.Memory
 
-prop_law1 :: (Eq a, Arbitrary a, Arbitrary b) => SymLens a b -> a -> Bool
-prop_law1 (SymLens d pr pl) a = case pr a d of
-  (b,c) -> case pl b c of
-    (a',c') -> a'==a && c'==c
+import Debug.Trace 
 
-prop_law2 :: (Eq b, Arbitrary a, Arbitrary b) => SymLens a b -> b -> Bool
-prop_law2 (SymLens d pr pl) b = case pl b d of
-  (a,c) -> case pr a c of
-    (b',c') ->b==b' && c==c'
+prop_law1 :: (Eq a, Arbitrary a, Arbitrary b) => SymLens a b -> a -> PropertyM IO ()
+prop_law1 (SymLens d pr pl) a = do
+  (b,c) <- run $ runStateT (pr a) d
+  (a',c') <- run $ runStateT (pl b) c
+  assert $ a'==a && c'==c
+
+prop_law2 :: (Eq b, Arbitrary a, Arbitrary b) => SymLens a b -> b -> PropertyM IO ()
+prop_law2 (SymLens d pr pl) b = do
+  (a,c) <- run $ runStateT (pl b) d
+  (b',c') <- run $ runStateT (pr a) c
+  assert $ b==b' && c==c'
 
 -- Tests for SumLens.Database
 genContainsTableDB :: [Header] -> Gen Database -> Gen Database
@@ -87,22 +93,21 @@ genSameHeaderTableDB ns gd = do
            return $ Map.insert n t' d
             
 test_rename1 :: Property
-test_rename1 = 
-  forAll (genContainsTableDB ["test1","test2"] arbitrary) laws
+test_rename1 = monadicIO $ forAllM (genContainsTableDB ["test1","test2"] arbitrary) laws
     where
       dl = SD.rename "test1" "test2"
       laws db = prop_law1 dl db
 
 test_rename2 :: Property
 test_rename2 = 
-  forAll (genContainsTableDB ["test1","test2"] arbitrary) laws
+  monadicIO $ forAllM (genContainsTableDB ["test1","test2"] arbitrary) laws
     where
       dl = SD.rename "test1" "test2"
       laws db = prop_law2 dl db 
 
 test_insert1 :: Property
 test_insert1 =
-  forAll dbt laws
+  monadicIO $ forAllM dbt laws
     where
       dbt = do
         db <- genNotContainsTableDB ["test"] arbitrary
@@ -113,7 +118,7 @@ test_insert1 =
 
 test_insert2 :: Property
 test_insert2 =
-  forAll dbt laws
+  monadicIO $ forAllM dbt laws
     where
       dbt = do
         db <- genContainsTableDB ["test"] arbitrary
@@ -124,28 +129,28 @@ test_insert2 =
 
 test_drop1 :: Property
 test_drop1 =
-  forAll (genContainsTableDB ["test"] arbitrary) laws
+  monadicIO $ forAllM (genContainsTableDB ["test"] arbitrary) laws
     where
       dl = SD.drop "test"
       laws db = prop_law1 dl db
 
 test_drop2 :: Property
 test_drop2 =
-  forAll (genNotContainsTableDB ["test"] arbitrary) laws
+  monadicIO $ forAllM (genNotContainsTableDB ["test"] arbitrary) laws
     where
       dl = SD.drop "test"
       laws db = prop_law2 dl db 
 
 test_append1 :: Property
 test_append1 =
-  forAll (genSameHeaderTableDB ["test1","test2"] $ genNotContainsTableDB ["test"] arbitrary) laws
+  monadicIO $ forAllM (genSameHeaderTableDB ["test1","test2"] $ genNotContainsTableDB ["test"] arbitrary) laws
     where
       dl = SD.append (\i _ -> i `rem` 2 ==0) "test1" "test2" "test"
       laws db = prop_law1 dl db
 
 test_append2 :: Property
 test_append2 =
-  forAll (genContainsTableDB ["test"] arbitrary) laws
+  monadicIO $ forAllM (genContainsTableDB ["test"] arbitrary) laws
     where
       dl = SD.append (\i _ -> i `rem` 2 ==0) "test1" "test2" "test"
       laws db =  prop_law2 dl db
@@ -153,14 +158,14 @@ test_append2 =
 
 test_split1 :: Property
 test_split1 =
-  forAll (genContainsTableDB ["test"] $ genNotContainsTableDB ["test1","test2"] arbitrary) laws
+  monadicIO $ forAllM (genContainsTableDB ["test"] $ genNotContainsTableDB ["test1","test2"] arbitrary) laws
     where
       dl = SD.split (\i _ -> i `rem` 2 ==0) "test" "test1" "test2"
       laws db = prop_law1 dl db
 
 test_split2 :: Property
 test_split2 =
-  forAll (genSameHeaderTableDB ["test1","test2"] $ genNotContainsTableDB ["test"] arbitrary) laws
+  monadicIO $ forAllM (genSameHeaderTableDB ["test1","test2"] $ genNotContainsTableDB ["test"] arbitrary) laws
     where
       dl = SD.split (\i _ -> i `rem` 2 ==0) "test" "test1" "test2"
       laws db = prop_law2 dl db
@@ -170,56 +175,56 @@ test_split2 =
 
 test_insertColumn1 :: Property
 test_insertColumn1 =
-    forAll (genNotContainsColumn ["test"] arbitrary) laws
+    monadicIO $ forAllM (genNotContainsColumn ["test"] arbitrary) laws
     where
       dl = ST.insertColumn "test" "def" 
       laws db = prop_law1 dl db
 
 test_insertColumn2 :: Property
 test_insertColumn2 =
-    forAll (genContainsColumn ["test"] arbitrary) laws
+    monadicIO $ forAllM (genContainsColumn ["test"] arbitrary) laws
     where
       dl = ST.insertColumn "test" "def" 
       laws db = prop_law2 dl db
 
 test_deleteColumn1 :: Property
 test_deleteColumn1 =
-    forAll (genContainsColumn ["test"] arbitrary) laws
+    monadicIO $ forAllM (genContainsColumn ["test"] arbitrary) laws
     where
       dl = ST.deleteColumn "test" "def" 
       laws db = prop_law1 dl db
 
 test_deleteColumn2 :: Property
 test_deleteColumn2 =
-    forAll (genNotContainsColumn ["test"] arbitrary) laws
+    monadicIO $ forAllM (genNotContainsColumn ["test"] arbitrary) laws
     where
       dl = ST.deleteColumn "test" "def" 
       laws db = prop_law2 dl db
 
 test_renameColumn1 :: Property
 test_renameColumn1 =
-    forAll (genContainsColumn ["test"] arbitrary) laws
+    monadicIO $ forAllM (genContainsColumn ["test"] arbitrary) laws
     where
       dl = ST.renameColumn "test" "test1" 
       laws db = prop_law1 dl db
 
 test_renameColumn2 :: Property
 test_renameColumn2 =
-    forAll (genContainsColumn ["test1"] arbitrary) laws
+    monadicIO $ forAllM (genContainsColumn ["test1"] arbitrary) laws
     where
       dl = ST.renameColumn "test" "test1" 
       laws db = prop_law2 dl db
 
 test_swapColumn1 :: Property
 test_swapColumn1 =
-    forAll (genContainsColumn ["test","test1"] arbitrary) laws
+    monadicIO $ forAllM (genContainsColumn ["test","test1"] arbitrary) laws
     where
       dl = ST.swapColumn "test" "test1" 
       laws db = prop_law1 dl db
 
 test_swapColumn2 :: Property
 test_swapColumn2 =
-    forAll (genContainsColumn ["test","test1"] arbitrary) laws
+    monadicIO $ forAllM (genContainsColumn ["test","test1"] arbitrary) laws
     where
       dl = ST.swapColumn "test" "test1" 
       laws db = prop_law2 dl db
@@ -228,7 +233,7 @@ test_swapColumn2 =
 
 -- test_insertColumn :: Property
 -- test_insertColumn =
---   forAll (genNotContainsColumn ["test"] arbitrary) $ laws dl
+--   monadicIO $ forAllM (genNotContainsColumn ["test"] arbitrary) $ laws dl
 --     where
 --       dl = ST.insertColumn "test" "def" 
 --       laws (SymLens def pr pl) t = case pr t def of

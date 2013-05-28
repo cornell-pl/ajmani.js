@@ -30,7 +30,7 @@ instance Arbitrary Table where
   arbitrary = do
     n <- boundedInt 0 5
     m <- boundedInt 0 20
-    headers <- uniqueList 5
+    headers <- uniqueList n
     recs <- foldM (f n) (Map.empty) [1..m] 
     return $ Table headers recs
    where f size a k = do
