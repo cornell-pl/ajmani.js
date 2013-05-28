@@ -11,7 +11,7 @@ import Prelude hiding ((.), id)
 import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (fromJust)
-import Database
+import Database.Memory
 import SymLens (SymLens(..), inv, prod)
 import qualified SymLens as S
 import qualified SymLens.List as SL

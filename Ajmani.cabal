@@ -44,13 +44,13 @@ cabal-version:       >=1.8
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Database, SchemaChange, SymLens, SymLens.Database, SymLens.List, SymLens.Map, SymLens.Table
+  exposed-modules:     Database.Memory, SchemaChange, SymLens, SymLens.Database, SymLens.List, SymLens.Map, SymLens.Table
   
   -- Modules included in this library but not exported.
   -- other-modules:       SymLens.Database, SymLens.List, SymLens.Map
   
   -- Other library packages from which modules are imported.
-  build-depends:       base ==4.5.*, containers ==0.4.*, aeson ==0.6.*, vector, unordered-containers ==0.2.*, text ==0.11.*, bytestring ==0.9.*, bimap
+  build-depends:       base ==4.5.*, containers ==0.4.*, aeson ==0.6.*, vector, unordered-containers ==0.2.*, text ==0.11.*, bytestring ==0.9.*, bimap, hssqlppp
   
 executable server
   main-is: email.hs

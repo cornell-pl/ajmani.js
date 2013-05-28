@@ -24,8 +24,8 @@ import qualified Data.ByteString as B
 
 import Data.Text.Lazy.Encoding (decodeUtf8)
 
-import Database (Database, Table, Name)
-import qualified Database as DB
+import Database.Memory (Database, Table, Name)
+import qualified Database.Memory as DB
 import qualified SchemaChange as SC
 import SymLens (SymLens(..))
 import SymLens.Database

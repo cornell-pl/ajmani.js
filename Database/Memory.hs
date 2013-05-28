@@ -6,7 +6,7 @@ Database module which simulates an in memory database.
 
 {-# LANGUAGE DeriveGeneric, FlexibleInstances, OverloadedStrings #-}
 
-module Database 
+module Database.Memory
   ( Database,
     Records,
     Table(..), 

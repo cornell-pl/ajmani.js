@@ -3,7 +3,7 @@
 module SymLens.Database where
 
 import SymLens 
-import Database 
+import Database.Memory
 import qualified Data.Map as Map
 import qualified Data.Bimap as Bimap
 import Data.Maybe (fromMaybe,fromJust,maybe)

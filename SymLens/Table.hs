@@ -2,7 +2,7 @@
 module SymLens.Table where
 
 import SymLens
-import Database
+import Database.Memory
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 import qualified Data.List as List

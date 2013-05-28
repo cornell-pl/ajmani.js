@@ -10,7 +10,7 @@ import Data.List
 
 import Control.Monad
 
-import Database
+import Database.Memory
 
 boundedInt :: Int -> Int -> Gen Int
 boundedInt lb ub = choose (lb,ub)

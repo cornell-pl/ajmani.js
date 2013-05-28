@@ -12,7 +12,7 @@ import Modules.Database ()
 import SymLens
 import qualified SymLens.Database as SD
 import qualified SymLens.Table as ST
-import Database
+import Database.Memory
 
 prop_law1 :: (Eq a, Arbitrary a, Arbitrary b) => SymLens a b -> a -> Bool
 prop_law1 (SymLens d pr pl) a = case pr a d of
