@@ -49,8 +49,33 @@ rename n1 n2 = SymLens () put put
                 run c ("ALTER TABLE " ++ n2 ++ " RENAME TO " ++ n1) []
                              | otherwise = return 0
         
--- drop :: Name -> DatabaseLens
--- drop n = SymLens Nothing pr pl
+getUniqueName :: Conn -> IO Name
+getUniqueName = undefined         
+        
+drop :: Name -> DatabaseLens
+drop n = SymLens Nothing pr pl
+  where pr :: Connection -> StateT (Maybe String) IO Connection
+        pr c = do 
+          ts <- lift $ getTables c
+          lift (dropTable ts) >> return c
+            where dropTable ts | elem n ts = do 
+              n' <- getUniqueName
+              run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
+              put (Just n')
+                               | otherwise = return Nothing
+        pl :: Connection -> StateT (Maybe String) IO Connection                               
+        pl c = do                    
+          ts <- lift $ getTables c
+          lift (undropTable ts) >> return c
+            where undropTable ts | elem n ts = do
+              (Just n') <- get 
+              run c ("DROP TABLE " ++ n) []
+              run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+                                 | otherwise = do
+              (Just n') <- get 
+              run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+
+                               
 --   where pr d = maybe (return d) trans $ Map.lookup n d
 --             where
 --               trans t' = put (Just t') >> return (Map.delete n d)
@@ -142,9 +167,9 @@ hasTable c n = getTables c >>= return . elem n
 
 -- Raises Error if Table is not found 
 getTable :: Conn -> Name -> IO Table
-getTable c n  = do
+getTable c n  = undefined -- do
   
 putTable :: Conn -> Name -> Table -> IO Int
 putTable = undefined
 
-getHeaders 
+-- getHeaders 
