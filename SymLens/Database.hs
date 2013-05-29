@@ -51,29 +51,30 @@ rename n1 n2 = SymLens () put put
                              | elem n2 ts =
                 run c ("ALTER TABLE " ++ n2 ++ " RENAME TO " ++ n1) []
                              | otherwise = return 0
-        
+
+  
 drop :: Name -> DatabaseLens
 drop n = SymLens Nothing pr pl
   where pr :: Connection -> StateT (Maybe String) IO Connection
         pr c = do 
           ts <- lift $ getTables c
-          lift (dropTable ts) >> return c
-            where dropTable ts | elem n ts = do 
-              n' <- getUniqueName
-              run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
-              put (Just n')
-                               | otherwise = return Nothing
+          lift (dropTable ts) >>= put
+          return c
+          where dropTable ts | elem n ts = do 
+                  n' <- getUniqueName c
+                  run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
+                  return (Just n')
+                             | otherwise = return Nothing
         pl :: Connection -> StateT (Maybe String) IO Connection                               
         pl c = do                    
           ts <- lift $ getTables c
-          lift (undropTable ts) >> return c
-            where undropTable ts | elem n ts = do
-              (Just n') <- get 
-              run c ("DROP TABLE " ++ n) []
-              run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
-                                 | otherwise = do
-              (Just n') <- get 
-              run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+          (Just n') <- get 
+          lift (undropTable n' ts) >> return c
+          where undropTable n' ts | elem n ts = do
+                  run c ("DROP TABLE " ++ n) []
+                  run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+                               | otherwise = do
+                  run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
 
                                
 --   where pr d = maybe (return d) trans $ Map.lookup n d
