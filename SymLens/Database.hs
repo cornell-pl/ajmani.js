@@ -142,6 +142,13 @@ toBimap (Table _ _ rs) = Bimap.fromList (map (\[a,b] -> (fromSql a, fromSql b)) 
 fromBimap :: Bimap.Bimap Integer Integer -> [[SqlValue]]
 fromBimap m = map (\(a,b) -> [toSql a, toSql b]) $ Bimap.toList m
 
+toMap :: Table -> Map.Map Integer Integer
+toMap (Table _ _ rs) = Map.fromList (map (\[a,b] -> (fromSql a, fromSql b)) rs)
+
+fromMap :: Map.Map Integer Integer -> [[SqlValue]]
+fromMap m = map (\(a,b) -> [toSql a, toSql b]) $ Map.toList m
+
+
 --fromBimap :: Bimap.Bimap Integer Integer -> Table -> Table
 --fromBimap m (Table n strct _) = Table n strct rs
 --  where rs = map (\(a,b) -> [toSql a, toSql b]) $ Bimap.toList m

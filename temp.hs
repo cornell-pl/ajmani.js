@@ -1,5 +1,6 @@
 import SymLens
 import SymLens.Database
+import SymLens.Table
 import Prelude hiding (drop)
 
 import Control.Monad
@@ -83,6 +84,11 @@ testAppend c = do
       print =<< quickQuery' c ("select * from emails")  []
       print =<< quickQuery' c ("select * from moreEmails")  []
       
+testInsertColumn :: Conn -> IO ()
+testInsertColumn c = do
+  e <- getTable c "emails"
+  case insertColumn c  
+
 main :: IO ()
 main = do
   c <- connectSqlite3 ":memory:"
