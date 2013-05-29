@@ -139,9 +139,12 @@ insert n t = SymLens Nothing pr pl
 toBimap :: Table -> Bimap.Bimap Integer Integer
 toBimap (Table _ _ rs) = Bimap.fromList (map (\[a,b] -> (fromSql a, fromSql b)) rs)
 
-fromBimap :: Bimap.Bimap Integer Integer -> Table -> Table
-fromBimap m (Table n strct _) = Table n strct rs
-  where rs = map (\(a,b) -> [toSql a, toSql b]) $ Bimap.toList m
+fromBimap :: Bimap.Bimap Integer Integer -> [[SqlValue]]
+fromBimap m = map (\(a,b) -> [toSql a, toSql b]) $ Bimap.toList m
+
+--fromBimap :: Bimap.Bimap Integer Integer -> Table -> Table
+--fromBimap m (Table n strct _) = Table n strct rs
+--  where rs = map (\(a,b) -> [toSql a, toSql b]) $ Bimap.toList m
  
 append :: ([SqlValue] -> Bool) 
        -> Name 
@@ -160,26 +163,79 @@ append on n1 n2 n = SymLens Nothing pr pl
               Just _  -> do t1 <- (readTable c ln) 
                             t2 <- (readTable c rn)
                             return (toBimap t1, toBimap t2)
-              Nothing -> return (Bimap.empty, Bimap.empty)  
+              Nothing -> return (Bimap.empty, Bimap.empty)
             (Table _ (sql, h1) r1)  <- readTable c n1
             (Table _ (_, h2) r2) <- readTable c n2
             --if h1 != h2 then error "Append error: Incompatible fields"
             let maxkey = (maxR lc `max` maxR rc) + 1 
             let (r, lc',nextkey) = foldl combine ([], lc, maxkey) r1
             let (r', rc',_) = foldl combine (r, rc, nextkey) r2
-            createTable c n (Table n (sql, h1) r')
-            run c ("DROP TABLE " ++ n1 ++ ";DROP TABLE " ++ n2) []
+            createTable c n (Table n1 (sql, h1) r')
+            case comp of  
+              Just _ -> do runRaw c ("DELETE FROM " ++ ln) 
+                           runRaw c ("DELETE FROM " ++ rn)
+                           il <- prepare c $ "INSERT INTO " ++ ln ++ "(rowid, fkey) VALUES (?,?)"
+                           ir <- prepare c $ "INSERT INTO " ++ rn ++ "(rowid, fkey) VALUES (?,?)"
+                           executeMany il $ fromBimap lc'
+                           executeMany ir $ fromBimap rc'
+              Nothing -> do runRaw c ("CREATE TABLE " ++ ln ++ " (fkey INTEGER)") 
+                            runRaw c ("CREATE TABLE " ++ rn ++ " (fkey INTEGER)")
+                            il <- prepare c $ "INSERT INTO " ++ ln ++ "(rowid, fkey) VALUES (?,?)"
+                            ir <- prepare c $ "INSERT INTO " ++ rn ++ "(rowid, fkey) VALUES (?,?)"
+                            executeMany il $ fromBimap lc'
+                            executeMany ir $ fromBimap rc'
+            runRaw c ("DROP TABLE " ++ n1)
+            runRaw c ("DROP TABLE " ++ n2)
             return $ Just (ln, rn)
           put comp'
           return c
           where combine (r,m,k) (i:fs) = case Bimap.lookupR (fromSql i) m of
                   Just k' -> (((toSql k'):fs):r,m,k)
-                  Nothing -> (((toSql k):fs):r,Bimap.insert k (fromSql i) m, k+1) 
-                maxR bm = if Bimap.null bm then -1 else fst $ Bimap.findMaxR bm
+                  Nothing -> (((toSql k):fs):r,Bimap.insert k (fromSql i) m, k+1)
+                maxR bm = if Bimap.null bm then 0 else fst $ Bimap.findMaxR bm
         pl :: Conn -> StateT (Maybe (Name, Name)) IO Conn
-        
-        pl = undefined    
-      
+        pl c = do
+          comp <- get
+          comp' <- lift $ do
+            (ln, rn) <- case comp of
+              Just (ln, rn) -> return (ln, rn)
+              Nothing -> liftM2 (,) (getUniqueName c) (getUniqueName c)
+            (lc, rc) <- case comp of
+              Just _  -> do t1 <- (readTable c ln) 
+                            t2 <- (readTable c rn)
+                            return (toBimap t1, toBimap t2)
+              Nothing -> return (Bimap.empty, Bimap.empty)
+            (Table _ (sql, hs) rs)  <- readTable c n
+            let ((r1, r2), (lc', rc'), _) = foldl split (([],[]),(lc,rc),(nextL lc, nextL rc)) rs
+            createTable c n1 (Table n (sql, hs) r1)
+            createTable c n2 (Table n (sql, hs) r2)
+            case comp of  
+              Just _ -> do runRaw c ("DELETE FROM " ++ ln) 
+                           runRaw c ("DELETE FROM " ++ rn)
+                           il <- prepare c $ "INSERT INTO " ++ ln ++ "(rowid, fkey) VALUES (?,?)"
+                           ir <- prepare c $ "INSERT INTO " ++ rn ++ "(rowid, fkey) VALUES (?,?)"
+                           executeMany il $ fromBimap lc'
+                           executeMany ir $ fromBimap rc'
+              Nothing -> do runRaw c ("CREATE TABLE " ++ ln ++ " (fkey INTEGER)") 
+                            runRaw c ("CREATE TABLE " ++ rn ++ " (fkey INTEGER)")
+                            il <- prepare c $ "INSERT INTO " ++ ln ++ "(rowid, fkey) VALUES (?,?)"
+                            ir <- prepare c $ "INSERT INTO " ++ rn ++ "(rowid, fkey) VALUES (?,?)"
+                            executeMany il $ fromBimap lc'
+                            executeMany ir $ fromBimap rc'                            
+            runRaw c ("DROP TABLE " ++ n)
+            return $ Just (ln, rn)
+          put comp'
+          return c
+          where split ((r1,r2), (lc, rc), (k1, k2)) (i:fs) = 
+                  case (Bimap.lookup i' lc, Bimap.lookup i' rc) of
+                    (Just k', _)  -> ((((toSql k'):fs):r1, r2), (lc, rc), (k1, k2))
+                    (_, Just k')  -> ((r1, ((toSql k'):fs):r2), (lc, rc), (k1, k2))
+                    _ | on fs     -> ((((toSql k1):fs):r1, r2), (Bimap.insert i' k1 lc, rc), (k1 + 1, k2))
+                    _ | otherwise -> ((r1, ((toSql k2):fs):r2), (lc, Bimap.insert i' k2 rc), (k1, k2 + 1))
+                  where i' = fromSql i
+                nextL bm = 1 + if Bimap.null bm then 0 else fst $ Bimap.findMaxR bm
+            
+            
 --          c@(lc,rc) <- get
 --          case (Map.lookup n1 d, Map.lookup n2 d) of
 --            (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> put (lc',rc') >> return (Map.insert n (Table h1 m') $ Map.delete n1 $ Map.delete n2 d)
@@ -269,13 +325,14 @@ createTable c n (Table n' (h,hs) rs) = do
   where ctb = prepare c $ copyCreateStatement h n' n
         insert = prepare c $ "INSERT INTO " ++ n ++ "( rowid,"  ++ concat (intersperse "," (map (\(a,_) -> fromSql a) hs)) ++
                                                     ") VALUES (?," ++ concat (intersperse "," (map (\_ -> "?") hs)) ++ " )"
+  
 
 readTable :: Conn -> Name -> IO Table
 readTable c n = do
-  ((h:_):_) <- quickQuery c "SELECT sql FROM sqlite_master WHERE type=\'table\' AND name=?" [toSql n]
-  hs' <- quickQuery c  ("PRAGMA table_info(" ++ n ++ ")") []
+  ((h:_):_) <- quickQuery' c "SELECT sql FROM sqlite_master WHERE type=\'table\' AND name=?" [toSql n]
+  hs' <- quickQuery' c  ("PRAGMA table_info(" ++ n ++ ")") []
   let hs = map fromTableColumn hs'
-  rs <-  quickQuery c ("SELECT rowid,"  ++ concat (intersperse "," (map (\(a,_) -> fromSql a) hs)) ++ " FROM " ++ n) []
+  rs <-  quickQuery' c ("SELECT rowid,"  ++ concat (intersperse "," (map (\(a,_) -> fromSql a) hs)) ++ " FROM " ++ n) []
   return (Table n (fromSql h,hs) rs) 
 
 fromTableColumn :: [SqlValue] -> (SqlValue,[SqlValue])

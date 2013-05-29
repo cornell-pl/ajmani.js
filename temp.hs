@@ -69,12 +69,27 @@ testInsert c = do
       b <- hasTable c "otherEmails"
       print $ not b 
 
+testAppend :: Conn -> IO ()
+testAppend c = do
+  e <- getTable c "emails"
+  me <- getTable c "moreEmails"
+  case append (const True) "emails" "moreEmails" "allEmails" of
+    SymLens comp pr pl -> do
+      comp' <- execStateT (pr c) comp
+      print =<< quickQuery' c "select * from allEmails" []
+      print =<< quickQuery' c ("select * from sqlite_master")  []
+      comp'' <- execStateT (pl c) comp'
+      print =<< quickQuery' c ("select * from sqlite_master")  []
+      print =<< quickQuery' c ("select * from emails")  []
+      print =<< quickQuery' c ("select * from moreEmails")  []
+      
 main :: IO ()
 main = do
   c <- connectSqlite3 ":memory:"
   testDB c
-  testRename c
-  testDrop c
-  testInsert c
-
+  --testRename c
+  --testDrop c
+  --testInsert c
+  testAppend c
+  
 
