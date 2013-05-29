@@ -134,14 +134,51 @@ insert n t = SymLens Nothing pr pl
 --                      " ON " ++ n2 ++ ".rowid = " ++ ns ++ ".right") []
 --          return c
 --        pl c = undefined
+
+toBimap :: Table -> Bimap.Bimap Integer Integer
+toBimap (Table _ _ rs) = Bimap.fromList (map (\[a,b] -> (fromSql a, fromSql b)) rs)
+
+fromBimap :: Bimap.Bimap Integer Integer -> Table -> Table
+fromBimap m (Table n strct _) = Table n strct rs
+  where rs = map (\(a,b) -> [toSql a, toSql b]) $ Bimap.toList m
  
---append :: (Id -> Fields -> Bool) 
---       -> Name 
---       -> Name 
---       -> Name 
---       -> DatabaseLens
---append on n1 n2 n = SymLens (Bimap.empty, Bimap.empty) pr pl
---  where pr d = do
+append :: ([SqlValue] -> Bool) 
+       -> Name 
+       -> Name 
+       -> Name 
+       -> DatabaseLens
+append on n1 n2 n = SymLens Nothing pr pl
+  where pr :: Conn -> StateT (Maybe (Name, Name)) IO Conn
+        pr c = do
+          comp <- get
+          comp' <- lift $ do
+            (ln, rn) <- case comp of
+              Just (ln, rn) -> return (ln, rn)
+              Nothing -> liftM2 (,) (getUniqueName c) (getUniqueName c)
+            (lc, rc) <- case comp of
+              Just _  -> do t1 <- (readTable c ln) 
+                            t2 <- (readTable c rn)
+                            return (toBimap t1, toBimap t2)
+              Nothing -> return (Bimap.empty, Bimap.empty)  
+            (Table _ (sql, h1) r1)  <- readTable c n1
+            (Table _ (_, h2) r2) <- readTable c n2
+            --if h1 != h2 then error "Append error: Incompatible fields"
+            let maxkey = (maxR lc `max` maxR rc) + 1 
+            let (r, lc',nextkey) = foldl combine ([], lc, maxkey) r1
+            let (r', rc',_) = foldl combine (r, rc, nextkey) r2
+            createTable c n (Table n (sql, h1) r')
+            run c ("DROP TABLE " ++ n1 ++ ";DROP TABLE " ++ n2) []
+            return $ Just (ln, rn)
+          put comp'
+          return c
+          where combine (r,m,k) (i:fs) = case Bimap.lookupR (fromSql i) m of
+                  Just k' -> (((toSql k'):fs):r,m,k)
+                  Nothing -> (((toSql k):fs):r,Bimap.insert k (fromSql i) m, k+1) 
+                maxR bm = if Bimap.null bm then -1 else fst $ Bimap.findMaxR bm
+        pl :: Conn -> StateT (Maybe (Name, Name)) IO Conn
+        
+        pl = undefined    
+      
 --          c@(lc,rc) <- get
 --          case (Map.lookup n1 d, Map.lookup n2 d) of
 --            (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> put (lc',rc') >> return (Map.insert n (Table h1 m') $ Map.delete n1 $ Map.delete n2 d)
