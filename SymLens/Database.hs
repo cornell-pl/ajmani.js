@@ -51,7 +51,7 @@ rename n1 n2 = SymLens () put put
                              | elem n2 ts =
                 run c ("ALTER TABLE " ++ n2 ++ " RENAME TO " ++ n1) []
                              | otherwise = return 0
-        
+                             
 drop :: Name -> DatabaseLens
 drop n = SymLens Nothing pr pl
   where pr :: Connection -> StateT (Maybe String) IO Connection
@@ -59,34 +59,42 @@ drop n = SymLens Nothing pr pl
           ts <- lift $ getTables c
           lift (dropTable ts) >> return c
             where dropTable ts | elem n ts = do 
-              n' <- getUniqueName
-              run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
-              put (Just n')
+                    n' <- getUniqueName
+                    run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
+                    put (Just n')
                                | otherwise = return Nothing
         pl :: Connection -> StateT (Maybe String) IO Connection                               
-        pl c = do                    
+        pl c = do
           ts <- lift $ getTables c
           lift (undropTable ts) >> return c
             where undropTable ts | elem n ts = do
-              (Just n') <- get 
-              run c ("DROP TABLE " ++ n) []
-              run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+                    (Just n') <- get 
+                    run c ("DROP TABLE " ++ n) []
+                    run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
                                  | otherwise = do
-              (Just n') <- get 
-              run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
-
-                               
---   where pr d = maybe (return d) trans $ Map.lookup n d
---             where
---               trans t' = put (Just t') >> return (Map.delete n d)
---         pl d = do
---           c <- get
---           maybe (return d) trans c
---             where
---               trans v = return $ Map.insert n v d
-
--- insert :: Name -> Table -> DatabaseLens
--- insert n t@(Table _ m) = SymLens Nothing pr pl
+                    (Just n') <- get 
+                    run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+                 
+createTable :: Name -> Table -> Conn -> Conn
+createTable = undefined      
+                    
+-- This does not satisfy the lens laws completely.
+-- It does so modulo equality for the complement (name of the temp table). 
+-- However, it does satisfy equality of the contents of the tables.                    
+                       
+insert :: Name -> Table -> DatabaseLens
+insert n t = SymLens Nothing pr pl
+   where pr c = do
+           tn' <- get 
+           lift $ case tn' of
+                    Just n' -> run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+                    Nothing -> createTable n t c 
+         pl c = undefined {- lift $ do
+                  n' <- getUniqueName
+                  run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
+                  put (Just n') -}
+        
+           
 --   where pr d = maybe (put (Just t) >> return (Map.insert n t d)) trans =<< get
 --           where trans v = return $ Map.insert n v d
 --         pl d = maybe (return d) trans $ Map.lookup n d
