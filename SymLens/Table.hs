@@ -12,21 +12,24 @@ import Database.HDBC
 import Database.HDBC.Sqlite3
 import SymLens.Database
 
-insertColumn :: Conn -> Name -> Name -> String -> SqlValue -> DatabaseLens
+insertColumn :: Conn -> Name -> Name -> String -> String -> DatabaseLens
 insertColumn cc tname colname colsql f = SymLens (Nothing :: Maybe String) putr putl 
   where
     putr c = do
       cn <- maybe (lift $ getUniqueName cc) return =<< get
       lift $ do
-        run c ("ALTER TABLE " ++ tname ++ " ADD COLUMN " ++ colname 
-                  ++ " " ++ colsql ++ " DEFAULT ?") [f]
-        s1 <- prepare cc $ "SELECT " ++ colname ++ " FROM " ++ " cn " ++ " WHERE rowid = ? " 
+        runRaw cc $ "CREATE TABLE IF NOT EXISTS " ++ cn ++ " (" ++ colname ++ " " ++ colsql ++ ")"   
+        runRaw c $ "ALTER TABLE " ++ tname ++ " ADD COLUMN " ++ colname 
+                     ++ " " ++ colsql ++ " DEFAULT " ++ f
+        s1 <- prepare cc $ "SELECT " ++ colname ++ " FROM " ++ cn ++ " WHERE rowid = ? " 
         s2 <- prepare c $ "SELECT rowid FROM " ++ tname
         s3 <- prepare c $ "UPDATE " ++ tname ++ " SET " ++ colname ++ " = ? WHERE rowid = ?"
+        execute s2 []
         rs <- fetchAllRows s2
         mapM_ (updateFn s1 s3) rs
       return c
       where updateFn s1 s3 [r] = do
+              execute s1 [r]
               c <- fetchRow s1
               maybe (return 0) (\[cname] -> execute s3 [cname, r]) c
     putl = undefined
@@ -74,17 +77,4 @@ insertColumn cc tname colname colsql f = SymLens (Nothing :: Maybe String) putr 
 --                                         let (l3, b:l4) = splitAt (n2 - n1 - 1) l2 in
 --                                         l1 ++ b:l3 ++ a:l4
 --
-----deleteColumn :: Header -> Table -> Table
-----deleteColumn h t@(Table hs rs) =
-----  case elemIndex h hs of
-----    Just n   -> Table (delete n hs) $ Map.map (delete n) rs
-----    Nothing  -> t
-----  where delete n fs = take n fs ++ drop (n+1) fs
-----
-----projectColumn :: Header -> Table -> [Field]
-----projectColumn h t@(Table hs rs) =
-----  case elemIndex h hs of
-----    Just n   -> map (!!n) (Map.elems rs)
-----    Nothing  -> []
-----
---
+
