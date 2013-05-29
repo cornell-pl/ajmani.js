@@ -78,9 +78,13 @@ testAppend c compConn = do
     SymLens comp pr pl -> do
       comp' <- execStateT (pr c) comp
       print =<< quickQuery' c "select * from allEmails" []
-      print =<< quickQuery' c ("select * from sqlite_master")  []
+      b <- hasTable c "emails"
+      print $ not b
+      b <- hasTable c "moreEmails"
+      print $ not b
       comp'' <- execStateT (pl c) comp'
-      print =<< quickQuery' c ("select * from sqlite_master")  []
+      b <- hasTable c "allEmails"
+      print $ not b      
       print =<< quickQuery' c ("select * from emails")  []
       print =<< quickQuery' c ("select * from moreEmails")  []
       
