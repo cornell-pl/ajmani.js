@@ -9,6 +9,9 @@ import qualified Data.Bimap as Bimap
 import Data.Maybe (fromMaybe,fromJust,maybe)
 import Control.Monad.State
 import Data.List
+import Control.Monad.Random
+import Data.Char
+import Control.Monad
 
 import Database.HDBC
 import Database.HDBC.Sqlite3
@@ -137,14 +140,25 @@ rename n1 n2 = SymLens () put put
 -- Returns Int from execute of HDBC. See doc for details. Deletes
 -- previous table if already exist.
 
+getUniqueName :: Conn -> IO Name
+getUniqueName c = do
+  ts <- getTables c
+  getRandomName 12 0 ts
+  where getRandomName n count ts | count > 50 = getRandomName (n+1) 0 ts
+                                 | otherwise = do
+                                   v <- rndString n
+                                   if elem v ts then getRandomName n (count+1) ts else return v
+
+rndString :: Int -> IO String
+rndString n = do
+  values <- evalRandIO (sequence (replicate n rnd))
+  return (map chr values)
+  where
+    rnd :: (RandomGen g) => Rand g Int
+    rnd = getRandomR (97,122)
+
 hasTable :: Conn -> Name -> IO Bool
 hasTable c n = getTables c >>= return . elem n
 
--- Raises Error if Table is not found 
-getTable :: Conn -> Name -> IO Table
-getTable c n  = do
-  
-putTable :: Conn -> Name -> Table -> IO Int
-putTable = undefined
 
-getHeaders 
+ 
