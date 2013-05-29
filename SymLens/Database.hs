@@ -46,9 +46,10 @@ rename n1 n2 = SymLens () put put
           lift (renameTable ts) >> return c
             where
               renameTable ts | elem n1 ts && elem n2 ts = do
-                run c ("ALTER TABLE " ++ n1 ++ " RENAME TO temp_temp") []
+                n' <- getUniqueName c
+                run c ("ALTER TABLE " ++ n1 ++ " RENAME TO " ++ n') []
                 run c ("ALTER TABLE " ++ n2 ++ " RENAME TO " ++ n1) []
-                run c ("ALTER TABLE temp_temp" ++ " RENAME TO " ++ n2 ) []
+                run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n2 ) []
                              | elem n1 ts =
                 run c ("ALTER TABLE " ++ n1 ++ " RENAME TO " ++ n2) []
                              | elem n2 ts =
@@ -86,7 +87,7 @@ insert n t = SymLens Nothing pr pl
            tn' <- get 
            lift $ case tn' of
                     Just n' -> run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) [] >> return ()
-                    Nothing -> createTable c n t >> return ()
+                    Nothing -> createTable c n t
            return c 
          pl c = do lift doInsertTable >>= \n' -> put (Just n')
                    return c
@@ -254,7 +255,7 @@ toTableColumn (v,[dt,isNull,null,pk]) = concat $ intersperse " "
                                           ]
 
 copyCreateStatement :: String -> String -> String -> String
-copyCreateStatement q from to = replace (" " ++ from) (" " ++ to) q
+copyCreateStatement q from to = replace ("\""++ from) ("\"" ++ to) $ replace ("," ++ from ) ("," ++ to) $ replace (" " ++ from) (" " ++ to) q
 
 copyTableStructure :: Conn -> Name -> Name -> IO ()
 copyTableStructure c from to = do
