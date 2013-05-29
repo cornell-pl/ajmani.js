@@ -55,8 +55,7 @@ rename n1 n2 = SymLens () put put
   
 drop :: Name -> DatabaseLens
 drop n = SymLens Nothing pr pl
-  where pr :: Connection -> StateT (Maybe String) IO Connection
-        pr c = do 
+  where pr c = do 
           ts <- lift $ getTables c
           lift (dropTable ts) >>= put
           return c
@@ -65,7 +64,6 @@ drop n = SymLens Nothing pr pl
                   run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
                   return (Just n')
                              | otherwise = return Nothing
-        pl :: Connection -> StateT (Maybe String) IO Connection                               
         pl c = do                    
           ts <- lift $ getTables c
           (Just n') <- get 
