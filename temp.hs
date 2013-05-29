@@ -24,11 +24,12 @@ testDB c = do
 
 getTable :: Conn -> String -> IO [[SqlValue]]
 getTable c n = quickQuery' c ("select rowid," ++ n ++ ".* from " ++ n) []
-testRename :: Conn -> IO ()
-testRename c = do
+
+testRename :: Conn -> Conn -> IO ()
+testRename c compConn = do
   e <- getTable c "emails"
   me <- getTable c "moreEmails"
-  case rename "emails" "moreEmails" of
+  case rename compConn "emails" "moreEmails" of
     SymLens comp pr pl -> do
       c' <- execStateT (pr c) comp
       e1 <- getTable c "emails"
@@ -42,10 +43,10 @@ testRename c = do
       print $ me2 == me
     
 
-testDrop :: Conn -> IO ()
-testDrop c = do
+testDrop :: Conn -> Conn -> IO ()
+testDrop c compConn = do
   e <- getTable c "emails"
-  case drop "emails" of
+  case drop compConn "emails" of
     SymLens comp pr pl -> do
       c' <- execStateT (pr c) comp
       b <- hasTable c "emails"
@@ -54,11 +55,11 @@ testDrop c = do
       e1 <- getTable c "emails"
       print $ e == e1
 
-testInsert :: Conn -> IO ()
-testInsert c = do
+testInsert :: Conn -> Conn -> IO ()
+testInsert c compConn = do
   e <- getTable c "emails"
   t1 <- readTable c "emails"
-  case insert "otherEmails" t1 of
+  case insert compConn "otherEmails" t1 of
     SymLens comp pr pl -> do
       c' <- execStateT (pr c) comp
       b <- hasTable c "otherEmails"
@@ -72,9 +73,10 @@ testInsert c = do
 main :: IO ()
 main = do
   c <- connectSqlite3 ":memory:"
+  compConn <- connectSqlite3 ":memory:"
   testDB c
-  testRename c
-  testDrop c
-  testInsert c
+  testRename c compConn
+  testDrop c  compConn 
+  testInsert c compConn
 
 

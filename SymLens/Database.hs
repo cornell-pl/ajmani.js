@@ -36,80 +36,84 @@ data Table = Table Name                -- Name from which this table is read
                    (String,[Header])   -- first stores the create statement as it is and second stores the exact header names along with some other info received from PRAGMA table_info
                    [[SqlValue]]        -- first value is the rowid for each record
                    deriving (Show)
-rename :: Name -> Name -> DatabaseLens
-rename n1 n2 = SymLens () put put
+rename :: Conn -> Name -> Name -> DatabaseLens
+rename _ n1 n2 = SymLens () put put
   where sigma n | n == n1   = n2
                 | n == n2   = n1
                 | otherwise = n
         put c = do
           ts <- lift $ getTables c
-          lift (renameTable ts) >> return c
+          lift (renameTb ts) >> return c
             where
-              renameTable ts | elem n1 ts && elem n2 ts = do
+              renameTb ts | elem n1 ts && elem n2 ts = do
                 n' <- getUniqueName c
-                run c ("ALTER TABLE " ++ n1 ++ " RENAME TO " ++ n') []
-                run c ("ALTER TABLE " ++ n2 ++ " RENAME TO " ++ n1) []
-                run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n2 ) []
+                renameTable c n1 n'
+                renameTable c n2 n1
+                renameTable c n' n2
                              | elem n1 ts =
-                run c ("ALTER TABLE " ++ n1 ++ " RENAME TO " ++ n2) []
+                renameTable c n1 n2
                              | elem n2 ts =
-                run c ("ALTER TABLE " ++ n2 ++ " RENAME TO " ++ n1) []
-                             | otherwise = return 0
+                renameTable c n2 n1
+                             | otherwise = return ()
 
-drop :: Name -> DatabaseLens
-drop n = SymLens Nothing pr pl
+drop :: Conn -> Name -> DatabaseLens
+drop compConn n = SymLens Nothing pr pl
   where pr c = do
           ts <- lift $ getTables c
-          lift (dropTable ts) >>= put
+          lift dropT >>= put
           return c
-          where dropTable ts | elem n ts = do
-                  n' <- getUniqueName c
-                  run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
+          where dropT = do
+                  n' <- getUniqueName compConn
+                  t <- readTable c n
+                  createTable compConn n' t
+                  dropTable c n
                   return (Just n')
-                             | otherwise = return Nothing
         pl c = do
-          ts <- lift $ getTables c
           (Just n') <- get
-          lift (undropTable n' ts) >> return c
-          where undropTable n' ts | elem n ts = do
-                  run c ("DROP TABLE " ++ n) []
-                  run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
-                               | otherwise = do
-                  run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) []
+          lift (undropTable n') >> return c
+          where undropTable n' = do
+                  t <- readTable compConn n'
+                  createTable c n t
+                  dropTable compConn n'
 
 -- This does not satisfy the lens laws completely.
--- It does so modulo equality of the temp table's name. 
--- However, it does satisfy equality of the contents of the tables.                    
-         
-insert :: Name -> Table -> DatabaseLens
-insert n t = SymLens Nothing pr pl
+-- It does so modulo equality of the temp table's name.
+-- However, it does satisfy equality of the contents of the tables.
+
+insert :: Conn -> Name -> Table -> DatabaseLens
+insert compConn n t = SymLens Nothing pr pl
    where pr c = do
-           tn' <- get 
+           tn' <- get
            lift $ case tn' of
-                    Just n' -> run c ("ALTER TABLE " ++ n' ++ " RENAME TO " ++ n) [] >> return ()
+                    Just n' -> do
+                      tb <- readTable compConn n'
+                      createTable c n tb
+                      dropTable compConn n'
                     Nothing -> createTable c n t
-           return c 
-         pl c = do lift doInsertTable >>= \n' -> put (Just n')
+           return c
+         pl c = do lift doInsertTable >>= put
                    return c
-           where doInsertTable = do 
-                   n' <- getUniqueName c
-                   run c ("ALTER TABLE " ++ n ++ " RENAME TO " ++ n') []
-                   return n'                 
-           
+           where doInsertTable = do
+                   n' <- getUniqueName compConn
+                   t <- readTable c n
+                   createTable compConn n' t
+                   dropTable c n
+                   return (Just n')
+
 -- -- -- Take a pred depending on which the new records will go to n1 or n2.
 -- -- -- putr :: Database with (n1,n2) and without n -> Database with n and without (n1,n2)
 -- -- -- putl :: Database with n and without (n1,n2) -> Database with (n1,n2) and without n
 
 -- -- Complement is a pair of maps mapping keys from the the two initial tables to the appended table
 -- Complement is a pair of tables mapping keys from the two initial tables to those of the appended table.
--- String argument is an optional SQL predicate on the schema of the target (appended) table. 
+-- String argument is an optional SQL predicate on the schema of the target (appended) table.
 
---append :: Maybe String 
---       -> Name 
---       -> Name 
---       -> Name 
+--append :: Maybe String
+--       -> Name
+--       -> Name
+--       -> Name
 --       -> DatabaseLens
--- 
+--
 --append on n1 n2 n = SymLens Nothing pr pl
 --  where pr c = do
 --          comp <- get
@@ -119,12 +123,12 @@ insert n t = SymLens Nothing pr pl
 --                    Nothing   -> do
 --                      ns <- getUniqueName c
 --                      run c ("CREATE TABLE " ++ ns ++ "(app INTEGER PRIMARY KEY, left INTEGER, right INTEGER)") []
---                      return ns 
+--                      return ns
 --            copyTableStructure c n1 n
---            
---            -- Assumes that the primary key is not autogenerated numeric. 
+--
+--            -- Assumes that the primary key is not autogenerated numeric.
 --            -- If it is autogenerated, then that needs to be projected out in the select
---             
+--
 --            run c ("INSERT INTO " ++ ns ++ " (left, right) SELECT (rowid, NULL) FROM " ++ n1 ++
 --                     " WHERE NOT EXISTS SELECT * FROM " ++ ns ++ " WHERE left = " ++ n1 ++ ".rowid") []
 --            run c ("INSERT INTO " ++ ns ++ " (left, right) SELECT (NULL, rowid) FROM " ++ n2 ++
@@ -135,11 +139,11 @@ insert n t = SymLens Nothing pr pl
 --                      " ON " ++ n2 ++ ".rowid = " ++ ns ++ ".right") []
 --          return c
 --        pl c = undefined
- 
---append :: (Id -> Fields -> Bool) 
---       -> Name 
---       -> Name 
---       -> Name 
+
+--append :: (Id -> Fields -> Bool)
+--       -> Name
+--       -> Name
+--       -> Name
 --       -> DatabaseLens
 --append on n1 n2 n = SymLens (Bimap.empty, Bimap.empty) pr pl
 --  where pr d = do
@@ -148,7 +152,7 @@ insert n t = SymLens Nothing pr pl
 --            (Just (Table h1 m1), Just (Table h2 m2)) | h1 == h2  -> put (lc',rc') >> return (Map.insert n (Table h1 m') $ Map.delete n1 $ Map.delete n2 d)
 --              where (m', rc', _) = Map.foldlWithKey combine (m, rc, newkey') m2
 --                    (m, lc', newkey') = Map.foldlWithKey combine (Map.empty, lc, newkey) m1
---                    combine (m, c, nextkey) k v = 
+--                    combine (m, c, nextkey) k v =
 --                      case Bimap.lookup k c of
 --                        Just k' -> (Map.insert k' v m, c, nextkey)
 --                        Nothing -> (Map.insert nextkey v m, Bimap.insert k nextkey c, nextkey + 1)
@@ -163,12 +167,12 @@ insert n t = SymLens Nothing pr pl
 --                    m2' = Map.mapKeys (fromJust  . flip Bimap.lookupR rc) $ Map.intersection m rcmap
 --                    (m1,m2,(lc',rc'),_) = Map.foldlWithKey combine (m1',m2',(lc,rc),(next1,next2)) rest
 --                    rest = Map.difference (Map.difference m lcmap) rcmap
---                    combine (m1,m2,(lc',rc'),(next1,next2)) k v 
+--                    combine (m1,m2,(lc',rc'),(next1,next2)) k v
 --                      | on k v = (Map.insert next1 v m1, m2, (Bimap.insert next1 k lc', rc'), (next1 + 1, next2))
 --                      | otherwise = (m1, Map.insert next2 v m2, (lc', Bimap.insert next2 k rc'), (next1, next2 + 1))
 --                    next1 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m1'
 --                    next2 = maybe 0 ((+1) . fst . fst) $ Map.maxViewWithKey m2'
---                    lcmap = Bimap.toMapR lc 
+--                    lcmap = Bimap.toMapR lc
 --                    rcmap = Bimap.toMapR rc
 --            _                                                    -> return d
 
@@ -239,7 +243,7 @@ readTable c n = do
   hs' <- quickQuery c  ("PRAGMA table_info(" ++ n ++ ")") []
   let hs = map fromTableColumn hs'
   rs <-  quickQuery c ("SELECT rowid,"  ++ concat (intersperse "," (map (\(a,_) -> fromSql a) hs)) ++ " FROM " ++ n) []
-  return (Table n (fromSql h,hs) rs) 
+  return (Table n (fromSql h,hs) rs)
 
 fromTableColumn :: [SqlValue] -> (SqlValue,[SqlValue])
 fromTableColumn (_:n:rs) = (n,rs) -- _ is the key of PRAGMA
@@ -262,3 +266,9 @@ copyTableStructure c from to = do
   ((a:_):_) <- quickQuery' c "SELECT sql FROM sqlite_master WHERE type=\'table\' AND name=?" [toSql from]
   runRaw c $ copyCreateStatement (fromSql a) from to
   return ()
+
+dropTable :: Conn -> Name -> IO ()
+dropTable c n = runRaw c $ "DROP TABLE " ++ n
+
+renameTable :: Conn -> Name -> Name -> IO ()
+renameTable c from to = runRaw c $ "ALTER TABLE " ++ from ++ " RENAME TO " ++ to
