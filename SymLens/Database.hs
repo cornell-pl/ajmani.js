@@ -153,7 +153,7 @@ append compConn on n1 n2 n = SymLens Nothing pr pl
             (Table _ (sql, h1) r1)  <- readTable c n1
             (Table _ (_, h2) r2) <- readTable c n2
             if h1 /= h2 then error "Append error: Incompatible Headers" else return ()
-            let maxkey = (maxR lc `max` maxR rc) + 1 
+            let maxkey = (maxL lc `max` maxL rc) + 1
             let (r, lc',nextkey) = foldl combine ([], lc, maxkey) r1
             let (r', rc',_) = foldl combine (r, rc, nextkey) r2
             createTable c n (Table n1 (sql, h1) r')
@@ -179,7 +179,7 @@ append compConn on n1 n2 n = SymLens Nothing pr pl
           where combine (r,m,k) (i:fs) = case Bimap.lookupR (fromSql i) m of
                   Just k' -> (((toSql k'):fs):r,m,k)
                   Nothing -> (((toSql k):fs):r,Bimap.insert k (fromSql i) m, k+1)
-                maxR bm = if Bimap.null bm then 0 else fst $ Bimap.findMaxR bm
+                maxL bm = if Bimap.null bm then 0 else fst $ Bimap.findMax bm
         pl :: Conn -> StateT (Maybe (Name, Name)) IO Conn
         pl c = do
           comp <- get
@@ -193,7 +193,7 @@ append compConn on n1 n2 n = SymLens Nothing pr pl
                             return (toBimap t1, toBimap t2)
               Nothing -> return (Bimap.empty, Bimap.empty)
             (Table _ (sql, hs) rs)  <- readTable c n
-            let ((r1, r2), (lc', rc'), _) = foldl split (([],[]),(lc,rc),(nextL lc, nextL rc)) rs
+            let ((r1, r2), (lc', rc'), _) = foldl split (([],[]),(lc,rc),(nextR lc, nextR rc)) rs
             createTable c n1 (Table n (sql, hs) r1)
             createTable c n2 (Table n (sql, hs) r2)
             case comp of  
@@ -221,20 +221,22 @@ append compConn on n1 n2 n = SymLens Nothing pr pl
                     _ | on fs     -> ((((toSql k1):fs):r1, r2), (Bimap.insert i' k1 lc, rc), (k1 + 1, k2))
                     _ | otherwise -> ((r1, ((toSql k2):fs):r2), (lc, Bimap.insert i' k2 rc), (k1, k2 + 1))
                   where i' = fromSql i
-                nextL bm = 1 + if Bimap.null bm then 0 else fst $ Bimap.findMaxR bm
+                nextR bm = 1 + if Bimap.null bm then 0 else fst $ Bimap.findMaxR bm
             
--- -- | Takes a function to filter the table on and then splits the table
--- -- into two tables, first satisfying the predicate and other the rest.
--- -- I doubt this is not a lens. Consider t split on f to t1 and t2. Now
--- -- we insert a record r to t1 satisying ~f. Then the lens laws will be
--- -- broken.  Maintain two tables of additional records added and apply
--- -- f if r is not in these table otherwise just split based on r
--- -- belongs to which table.
--- split :: (Id -> Fields -> Bool) -> Name -> Name -> Name -> DatabaseLens
--- split on n n1 n2 = inv $ append on n1 n2 n
-
--- Returns Int from execute of HDBC. See doc for details. Deletes
--- previous table if already exist.
+ -- | Takes a function to filter the table on and then splits the table
+ -- into two tables, first satisfying the predicate and other the rest.
+ -- I doubt this is not a lens. Consider t split on f to t1 and t2. Now
+ -- we insert a record r to t1 satisying ~f. Then the lens laws will be
+ -- broken.  Maintain two tables of additional records added and apply
+ -- f if r is not in these table otherwise just split based on r
+ -- belongs to which table.
+split :: Conn
+       -> ([SqlValue] -> Bool) 
+       -> Name 
+       -> Name 
+       -> Name 
+       -> DatabaseLens
+split c on n n1 n2 = inv $ append c on n1 n2 n
 
 getUniqueName :: Conn -> IO Name
 getUniqueName c = do
@@ -277,8 +279,8 @@ readTable c n = do
 
 readTableStructure :: Conn -> Name -> IO Table
 readTableStructure c n = do
-  ((h:_):_) <- quickQuery c "SELECT sql FROM sqlite_master WHERE type=\'table\' AND name=?" [toSql n]
-  hs' <- quickQuery c  ("PRAGMA table_info(" ++ n ++ ")") []
+  ((h:_):_) <- quickQuery' c "SELECT sql FROM sqlite_master WHERE type=\'table\' AND name=?" [toSql n]
+  hs' <- quickQuery' c  ("PRAGMA table_info(" ++ n ++ ")") []
   let hs = map fromTableColumn hs'
   return (Table n (fromSql h,hs) [[]])
 

@@ -40,14 +40,12 @@ insertColumn cc tname colname colsql f = SymLens (Nothing :: Maybe String) putr 
         temp <- getUniqueName c
         (Table _ (sql, _) _) <- readTableStructure c tname
         let (col, rest) = removeColumnName (getColumns sql) colname
-        let (col', rest') = (head $ words col, map (head . words) rest) 
+        let (col', rest') = (head $ words col, map (head . words) rest)
         runRaw c $ makeCreateStatement temp rest
         runRaw c $ "INSERT INTO " ++ temp ++ "(" ++ intercalate "," ("rowid":rest') ++ ")" 
                      ++ " SELECT " ++ intercalate "," ("rowid":rest') ++ " FROM " ++ tname
         runRaw cc $ makeCreateExistsStatement cn [col]
         runRaw cc $ "DELETE FROM " ++ cn
-        commit c
-        commit cc
         query <- prepare c $ "SELECT rowid, " ++ col' ++ " FROM " ++ tname
         ins <- prepare cc $ "INSERT INTO " ++ cn ++ "(rowid, " ++ col' ++ ") VALUES (?, ?)"
         execute query []
@@ -56,8 +54,6 @@ insertColumn cc tname colname colsql f = SymLens (Nothing :: Maybe String) putr 
         commit cc
         dropTable c tname
         renameTable c temp tname
-        commit cc
-        print =<< quickQuery' cc ("SELECT rowid, * FROM " ++ cn) []
       put (Just cn)
       return' c
         
@@ -75,7 +71,7 @@ renameColumn _ tname from to =
               (Table _ (sql, _) _) <- readTableStructure c tname
               let (col1, rest1) = removeColumnName (getColumns sql) from
                   rest          = map (head . words) rest1
-                  newcol        = to ++ (concat $ tail $ words col1)
+                  newcol        = to ++ " " ++ (concat $ tail $ words col1)
               temp <- getUniqueName c
               runRaw c $ makeCreateStatement temp (newcol:rest1)
               runRaw c $ "INSERT INTO " ++ temp ++ "(" ++ intercalate "," ("rowid":to:rest) ++ ")" ++

@@ -37,9 +37,12 @@ testRename c compConn = do
       me1 <- getTable c "moreEmails"
       print $ e == me1
       print $ e1 == me
+      runRaw c $ "insert into moreEmails values ('From:god','bang')"
       execStateT (pl c) c'
       e2 <- getTable c "emails"
       me2 <- getTable c "moreEmails"
+      print =<< quickQuery' c ("select * from emails")  []
+      print =<< quickQuery' c ("select * from moreEmails")  []
       print $ e == e2
       print $ me2 == me
     
@@ -63,14 +66,17 @@ testInsert c compConn = do
   case insert compConn "otherEmails" t1 of
     SymLens comp pr pl -> do
       c' <- execStateT (pr c) comp
+      runRaw c $ "update otherEmails set body='other body' where rowid=2"  
       b <- hasTable c "otherEmails"
       print b
       e1 <- getTable c "otherEmails"
       print $ e == e1
-      execStateT (pl c) c'
+      c'' <- execStateT (pl c) c'
       b <- hasTable c "otherEmails"
       print $ not b 
-
+      execStateT (pr c) c''
+      print =<< quickQuery' c ("select * from otherEmails")  []
+      
 testAppend :: Conn -> Conn -> IO ()
 testAppend c compConn = do
   e <- getTable c "emails"
@@ -78,16 +84,43 @@ testAppend c compConn = do
   case append compConn (const True) "emails" "moreEmails" "allEmails" of
     SymLens comp pr pl -> do
       comp' <- execStateT (pr c) comp
+      runRaw c $ "insert into allEmails values ('From:god', 'bigger bang')"
+      runRaw c $ "update allEmails set header='From:Rome' where rowid=4"
       print =<< quickQuery' c "select * from allEmails" []
       b <- hasTable c "emails"
       print $ not b
       b <- hasTable c "moreEmails"
       print $ not b
       comp'' <- execStateT (pl c) comp'
+      runRaw c $ "insert into moreEmails values ('From:Arjun', 'What bang?')"
+      runRaw c $ "update emails set header='From:Arjun' where rowid=4"
       b <- hasTable c "allEmails"
       print $ not b      
       print =<< quickQuery' c ("select * from emails")  []
       print =<< quickQuery' c ("select * from moreEmails")  []
+      _ <- execStateT (pr c) comp''
+      print =<< quickQuery' c ("select * from allEmails")  []
+
+testSplit :: Conn -> Conn -> IO ()
+testSplit c compConn = do
+  e <- getTable c "emails"
+  me <- getTable c "moreEmails"
+  case split compConn (\(a:_) -> fromSql a == "From:Raghu") "emails" "raghus" "others" of
+    SymLens comp pr pl -> do
+      comp' <- execStateT (pr c) comp
+      print =<< quickQuery' c "select * from raghus" []
+      print =<< quickQuery' c "select * from others" []
+      runRaw c $ "insert into raghus values ('From:god', 'bigger bang')"
+      runRaw c $ "update raghus set header='From:Rome' where rowid=1"
+      print =<< quickQuery' c "select * from raghus" []
+      print =<< quickQuery' c "select * from others" []
+      comp'' <- execStateT (pl c) comp'
+      runRaw c $ "insert into emails values ('From:Arjun', 'What bang?')"
+      runRaw c $ "update emails set header='From:Arjun' where rowid=4"
+      print =<< quickQuery' c ("select * from emails")  []
+      _ <- execStateT (pr c) comp''
+      print =<< quickQuery' c ("select * from raghus")  []
+      print =<< quickQuery' c ("select * from others")  []
       
 testInsertColumn :: Conn -> Conn -> IO ()
 testInsertColumn c compConn = do
@@ -95,8 +128,12 @@ testInsertColumn c compConn = do
   case insertColumn compConn "emails" "timestamp" "VARCHAR(20)" "'20 May 2013'" of
     SymLens comp pr pl -> do
       comp' <- execStateT (pr c) comp
+      runRaw c $ "insert into emails values ('From:Arjun', 'What bang?', 'April 1 2013')"
+      runRaw c $ "update emails set timestamp='August 20 2000' where rowid=2"
       print =<< quickQuery' c "select rowid, * from emails" []
       comp'' <- execStateT (pl c) comp'
+      print =<< quickQuery' c "select rowid, * from emails" []
+      execStateT (pr c) comp''
       print =<< quickQuery' c "select rowid, * from emails" []
 
 testDeleteColumn :: Conn -> Conn -> IO ()
@@ -106,31 +143,42 @@ testDeleteColumn c compConn = do
     SymLens comp pr pl -> do
       comp' <- execStateT (pr c) comp
       print =<< quickQuery' c "select rowid, * from emails" []
-      --comp'' <- execStateT (pl c) comp'
+      comp'' <- execStateT (pl c) comp'
       print =<< quickQuery' c "select rowid, * from emails" []
 
 testRenameColumn :: Conn -> Conn -> IO ()
 testRenameColumn c compConn = do
   e <- getTable c "emails"
-  case renameColumn compConn "emails" "header" "from" of
+  case renameColumn compConn "emails" "header" "fromfield" of
     SymLens comp pr pl -> do
       comp' <- execStateT (pr c) comp
+      runRaw c $ "insert into emails values ('From:Arjun', 'What bang?')"
+      runRaw c $ "update emails set fromfield='From:God' where rowid=2"
       print =<< readTableStructure c "emails"
       print =<< quickQuery' c "select rowid, * from emails" []
+      putStrLn ""
       comp'' <- execStateT (pl c) comp'
+      runRaw c $ "update emails set header='From:Satvik Chauhan' where rowid=1"
       print =<< readTableStructure c "emails"
       print =<< quickQuery' c "select rowid, * from emails" []
+      putStrLn ""
+      execStateT (pr c) comp''
+      print =<< readTableStructure c "emails"
+      print =<< quickQuery' c "select rowid, * from emails" []
+      putStrLn ""
 
 main :: IO ()
 main = do
   c <- connectSqlite3 ":memory:"
   compConn <- connectSqlite3 ":memory:"
   testDB c
-  testRename c compConn
-  testDrop c  compConn 
-  testInsert c compConn
-  testAppend c compConn
-  testInsertColumn c compConn
-  testDeleteColumn c compConn
+--  testRename c compConn
+--  testDrop c  compConn 
+--  testInsert c compConn
+--  testAppend c compConn
+--  testSplit  c compConn
+--  testInsertColumn c compConn
+--  testDeleteColumn c compConn
+  testRenameColumn c compConn
   disconnect c
   disconnect compConn
