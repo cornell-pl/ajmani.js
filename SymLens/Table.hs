@@ -27,33 +27,24 @@ insertColumn cc tname colname colsql f = SymLens (Nothing :: Maybe String) putr 
         execute s2 []
         rs <- fetchAllRows s2
         mapM_ (updateFn s1 s3) rs
+        commit
       return c
       where updateFn s1 s3 [r] = do
               execute s1 [r]
               c <- fetchRow s1
               maybe (return 0) (\[cname] -> execute s3 [cname, r]) c
-    putl = undefined
---    putl c = do
---      cn <- get
---      lift $ do
---        quickQuery' cn ("SELECT rowid, " ++ colname ++ " FROM " ++ tname ++   
-          
-      
---    putl (Table hs rs) = do
---      case List.elemIndex h hs of
---        Just n  -> do
---          let (_, hs') = extract n hs
---          let (m, rs') = Map.mapAccumWithKey (extractIntoMap n) Map.empty rs
---          put m
---          return $ Table hs' rs'
---        Nothing -> put Map.empty >> return (Table hs rs)                                 
---      where extract n l = let (l1, x:l2) = List.splitAt n l in 
---              (x, l1 ++ l2)
---            extractIntoMap n m i l = let (x, l') = extract n l in
---              (Map.insert i x m, l')                 
-
---deleteColumn :: Header -> Field -> SymLens Table Table
---deleteColumn h f = inv $ insertColumn h f
+    putl c = do
+      cn <- maybe (lift $ getUniqueName cc) return =<< get
+      lift $ do
+        temp <- getUniqueName
+        (Table _ (sql, _) _) <- readTable c tname
+        let sqldrop = dropColumnFromStatement colname sql
+        runRaw cc $ "CREATE TABLE IF NOT EXISTS " ++ cn ++ " (" ++ colname ++ " " ++ colsql ++ ")"
+        renameTable c tname temp
+        runRaw c sqldrop
+        
+deleteColumn :: Conn -> Name -> Name -> String -> String -> DatabaseLens
+deleteColumn cc tname colname colsql f = inv $ insertColumn cc tname colname colsql f
 --
 --renameColumn :: Header -> Header -> SymLens Table Table
 --renameColumn h h' = 
