@@ -54,6 +54,12 @@ deleteColumn cc tname colname colsql f = inv $ insertColumn cc tname colname col
 --                    | hd == h'   = h
 --                    | otherwise  = hd
 --
+--projectColumn :: Header -> Table -> [Field]
+--projectColumn h t@(Table hs rs) =
+--  case elemIndex h hs of
+--    Just n   -> map (!!n) (Map.elems rs)
+--    Nothing  -> []
+--
 --swapColumn :: Header -> Header -> SymLens Table Table
 --swapColumn h1 h2 = 
 --  SymLens () fn fn
@@ -68,4 +74,3 @@ deleteColumn cc tname colname colsql f = inv $ insertColumn cc tname colname col
 --                                         let (l3, b:l4) = splitAt (n2 - n1 - 1) l2 in
 --                                         l1 ++ b:l3 ++ a:l4
 --
-
