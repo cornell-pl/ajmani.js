@@ -1,5 +1,6 @@
 import SymLens
 import SymLens.Database
+import SymLens.Table
 import Prelude hiding (drop)
 
 import Control.Monad
@@ -88,6 +89,14 @@ testAppend c compConn = do
       print =<< quickQuery' c ("select * from emails")  []
       print =<< quickQuery' c ("select * from moreEmails")  []
       
+testInsertColumn :: Conn -> Conn -> IO ()
+testInsertColumn c compConn = do
+  e <- getTable c "emails"
+  case insertColumn compConn "emails" "timestamp" "VARCHAR(20)" "'20 May 2013'" of
+    SymLens comp pr pl -> do
+      comp' <- execStateT (pr c) comp
+      print =<< quickQuery' c "select * from emails" []
+
 main :: IO ()
 main = do
   c <- connectSqlite3 ":memory:"
@@ -97,3 +106,4 @@ main = do
   testDrop c  compConn 
   testInsert c compConn
   testAppend c compConn
+  testInsertColumn c compConn
