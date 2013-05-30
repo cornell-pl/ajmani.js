@@ -70,4 +70,3 @@ swapColumn h1 h2 =
 --    Just n   -> map (!!n) (Map.elems rs)
 --    Nothing  -> []
 --
-

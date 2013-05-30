@@ -9,6 +9,7 @@ import qualified Data.Bimap as Bimap
 import Data.Maybe (fromMaybe,fromJust,maybe)
 import Control.Monad.State
 import Data.List
+import Data.List.Split
 import Control.Monad.Random
 import Data.Char
 import Control.Monad
@@ -252,11 +253,16 @@ createTable c n (Table n' (h,hs) rs) = do
 
 readTable :: Conn -> Name -> IO Table
 readTable c n = do
+  (Table _ (h,hs) _) <- readTableStructure c n
+  rs <-  quickQuery c ("SELECT rowid,"  ++ concat (intersperse "," (map (\(a,_) -> fromSql a) hs)) ++ " FROM " ++ n) []
+  return (Table n (h,hs) rs)
+
+readTableStructure :: Conn -> Name -> IO Table
+readTableStructure c n = do
   ((h:_):_) <- quickQuery c "SELECT sql FROM sqlite_master WHERE type=\'table\' AND name=?" [toSql n]
   hs' <- quickQuery c  ("PRAGMA table_info(" ++ n ++ ")") []
   let hs = map fromTableColumn hs'
-  rs <-  quickQuery c ("SELECT rowid,"  ++ concat (intersperse "," (map (\(a,_) -> fromSql a) hs)) ++ " FROM " ++ n) []
-  return (Table n (fromSql h,hs) rs)
+  return (Table n (fromSql h,hs) [[]])
 
 fromTableColumn :: [SqlValue] -> (SqlValue,[SqlValue])
 fromTableColumn (_:n:rs) = (n,rs) -- _ is the key of PRAGMA
@@ -280,8 +286,24 @@ copyTableStructure c from to = do
   runRaw c $ copyCreateStatement (fromSql a) from to
   return ()
 
+getColumns :: String -> [String]
+getColumns h =
+  let ls = map (dropWhile (flip elem [' ','\t','\n','\r'])) . wordsBy (==',') . Prelude.drop 1 . dropWhile (/='(') $ h
+   in init ls ++ [reverse . Prelude.drop 1 . dropWhile (/=')') . reverse $ last ls]
+  
+dropColumnTableStructure :: Conn -> Name -> Name -> Name -> IO ()
+dropColumnTableStructure c from to colName = do
+  (Table _ (h,_) _) <- readTableStructure c from
+  let nls = getColumns h
+  let q = "CREATE TABLE " ++ to  ++ " (" ++ (intercalate "," $ filter (not . checkColumn colName) nls) ++ ")"
+  print q
+  where checkColumn colName s = head (words s) == colName
+  
+
 dropTable :: Conn -> Name -> IO ()
 dropTable c n = runRaw c $ "DROP TABLE " ++ n
 
 renameTable :: Conn -> Name -> Name -> IO ()
 renameTable c from to = runRaw c $ "ALTER TABLE " ++ from ++ " RENAME TO " ++ to
+
+  
