@@ -31,6 +31,10 @@ type DatabaseLens = SymLens Conn Conn
 
 -- Assumes no table named temp_temp
 
+return' :: (Monad (t IO), MonadTrans t, IConnection b) 
+        => b -> t IO b
+return' c = lift (commit c) >> return c
+
 type Name = String
 type Header = (SqlValue, [SqlValue])
 data Table = Table Name                -- Name from which this table is read
@@ -44,7 +48,7 @@ rename _ n1 n2 = SymLens () put put
                 | otherwise = n
         put c = do
           ts <- lift $ getTables c
-          lift (renameTb ts) >> return c
+          lift (renameTb ts) >> return' c
             where
               renameTb ts | elem n1 ts && elem n2 ts = do
                 n' <- getUniqueName c
@@ -62,7 +66,8 @@ drop compConn n = SymLens Nothing pr pl
   where pr c = do
           ts <- lift $ getTables c
           lift dropT >>= put
-          return c
+          lift $ commit c
+          return' c
           where dropT = do
                   n' <- getUniqueName compConn
                   t <- readTable c n
@@ -71,7 +76,7 @@ drop compConn n = SymLens Nothing pr pl
                   return (Just n')
         pl c = do
           (Just n') <- get
-          lift (undropTable n') >> return c
+          lift (undropTable n') >> return' c
           where undropTable n' = do
                   t <- readTable compConn n'
                   createTable c n t
@@ -91,9 +96,9 @@ insert compConn n t = SymLens Nothing pr pl
                       createTable c n tb
                       dropTable compConn n'
                     Nothing -> createTable c n t
-           return c
+           return' c
          pl c = do lift doInsertTable >>= put
-                   return c
+                   return' c
            where doInsertTable = do
                    n' <- getUniqueName compConn
                    t <- readTable c n
@@ -165,11 +170,12 @@ append compConn on n1 n2 n = SymLens Nothing pr pl
                             ir <- prepare compConn $ "INSERT INTO " ++ rn ++ "(rowid, fkey) VALUES (?,?)"
                             executeMany il $ fromBimap lc'
                             executeMany ir $ fromBimap rc'
+            commit compConn
             runRaw c ("DROP TABLE " ++ n1)
             runRaw c ("DROP TABLE " ++ n2)
             return $ Just (ln, rn)
           put comp'
-          return c
+          return' c
           where combine (r,m,k) (i:fs) = case Bimap.lookupR (fromSql i) m of
                   Just k' -> (((toSql k'):fs):r,m,k)
                   Nothing -> (((toSql k):fs):r,Bimap.insert k (fromSql i) m, k+1)
@@ -203,10 +209,11 @@ append compConn on n1 n2 n = SymLens Nothing pr pl
                             ir <- prepare compConn $ "INSERT INTO " ++ rn ++ "(rowid, fkey) VALUES (?,?)"
                             executeMany il $ fromBimap lc'
                             executeMany ir $ fromBimap rc'                            
+            commit compConn
             runRaw c ("DROP TABLE " ++ n)
             return $ Just (ln, rn)
           put comp'
-          return c
+          return' c
           where split ((r1,r2), (lc, rc), (k1, k2)) (i:fs) = 
                   case (Bimap.lookup i' lc, Bimap.lookup i' rc) of
                     (Just k', _)  -> ((((toSql k'):fs):r1, r2), (lc, rc), (k1, k2))
@@ -301,12 +308,35 @@ getColumns :: String -> [String]
 getColumns h =
   let ls = map (dropWhile (flip elem [' ','\t','\n','\r'])) . wordsBy (==',') . Prelude.drop 1 . dropWhile (/='(') $ h
    in init ls ++ [reverse . Prelude.drop 1 . dropWhile (/=')') . reverse $ last ls]
+   
+makeCreateStatement :: Name -> [String] -> String
+makeCreateStatement tname coldesc = "CREATE TABLE " ++ tname  ++ " (" ++ intercalate "," coldesc ++ ")" 
+
+makeCreateExistsStatement :: Name -> [String] -> String
+makeCreateExistsStatement tname coldesc = "CREATE TABLE IF NOT EXISTS " ++ tname  ++ " (" ++ intercalate "," coldesc ++ ")" 
+
+
+removeColumnName :: [String] -> String -> (String, [String])
+removeColumnName cols colName = (head match, nmatch) 
+  where (match, nmatch)       = partition (checkColumn colName) $ cols
+        checkColumn colName s =  head (words s) == colName
+        
+dropColumn :: Conn -> Name -> Name -> Name -> IO ()
+dropColumn c from to colName = do
+  (Table _ (h,_) _) <- readTableStructure c from
+  let nls = filter (not . checkColumn colName) $ getColumns h
+  let createStmt = makeCreateStatement to $ nls
+  let colNames = map (head . words) nls
+  let insertStmt = "INSERT INTO " ++ to ++ " SELECT " ++ intercalate "," colNames ++ " FROM " ++ from
+  runRaw c createStmt
+  runRaw c insertStmt
+  where checkColumn colName s = head (words s) == colName
   
 dropColumnTableStructure :: Conn -> Name -> Name -> Name -> IO ()
 dropColumnTableStructure c from to colName = do
   (Table _ (h,_) _) <- readTableStructure c from
   let nls = getColumns h
-  let q = "CREATE TABLE " ++ to  ++ " (" ++ (intercalate "," $ filter (not . checkColumn colName) nls) ++ ")"
+  let q = makeCreateStatement to $ filter (not . checkColumn colName) nls
   print q
   where checkColumn colName s = head (words s) == colName
   

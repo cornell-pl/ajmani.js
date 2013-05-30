@@ -4,6 +4,7 @@ module SymLens.Table where
 import SymLens
 --import Database.Memory
 import Data.Maybe (fromMaybe)
+import Data.List
 import qualified Data.Map as Map
 import qualified Data.List as List
 import Control.Monad.State
@@ -27,8 +28,8 @@ insertColumn cc tname colname colsql f = SymLens (Nothing :: Maybe String) putr 
         execute s2 []
         rs <- fetchAllRows s2
         mapM_ (updateFn s1 s3) rs
-        commit
-      return c
+        commit cc
+      return' c
       where updateFn s1 s3 [r] = do
               execute s1 [r]
               c <- fetchRow s1
@@ -36,41 +37,49 @@ insertColumn cc tname colname colsql f = SymLens (Nothing :: Maybe String) putr 
     putl c = do
       cn <- maybe (lift $ getUniqueName cc) return =<< get
       lift $ do
-        temp <- getUniqueName
-        (Table _ (sql, _) _) <- readTable c tname
-        let sqldrop = dropColumnFromStatement colname sql
-        runRaw cc $ "CREATE TABLE IF NOT EXISTS " ++ cn ++ " (" ++ colname ++ " " ++ colsql ++ ")"
-        renameTable c tname temp
-        runRaw c sqldrop
+        temp <- getUniqueName c
+        (Table _ (sql, _) _) <- readTableStructure c tname
+        let (col, rest) = removeColumnName (getColumns sql) colname
+        let (col', rest') = (head $ words col, map (head . words) rest) 
+        runRaw c $ makeCreateStatement temp rest
+        runRaw c $ "INSERT INTO " ++ temp ++ "(" ++ intercalate "," ("rowid":rest') ++ ")" 
+                     ++ " SELECT " ++ intercalate "," ("rowid":rest') ++ " FROM " ++ tname
+        runRaw cc $ makeCreateExistsStatement cn [col]
+        runRaw cc $ "DELETE FROM " ++ cn
+        commit c
+        commit cc
+        query <- prepare c $ "SELECT rowid, " ++ col' ++ " FROM " ++ tname
+        ins <- prepare cc $ "INSERT INTO " ++ cn ++ "(rowid, " ++ col' ++ ") VALUES (?, ?)"
+        execute query []
+        rs <- fetchAllRows query
+        mapM_ (execute ins) rs
+        commit cc
+        dropTable c tname
+        renameTable c temp tname
+        commit cc
+        print =<< quickQuery' cc ("SELECT rowid, * FROM " ++ cn) []
+      put (Just cn)
+      return' c
         
+                
 deleteColumn :: Conn -> Name -> Name -> String -> String -> DatabaseLens
 deleteColumn cc tname colname colsql f = inv $ insertColumn cc tname colname colsql f
---
---renameColumn :: Header -> Header -> SymLens Table Table
---renameColumn h h' = 
---  SymLens () fn fn 
---    where fn (Table hs rs) = put () >> return (Table (List.map rename hs) rs)
---          rename hd | hd == h    = h'
---                    | hd == h'   = h
---                    | otherwise  = hd
---
---projectColumn :: Header -> Table -> [Field]
---projectColumn h t@(Table hs rs) =
---  case elemIndex h hs of
---    Just n   -> map (!!n) (Map.elems rs)
---    Nothing  -> []
---
---swapColumn :: Header -> Header -> SymLens Table Table
---swapColumn h1 h2 = 
---  SymLens () fn fn
---    where fn (Table hs rs) = do
---            put ()
---            case (List.elemIndex h1 hs, List.elemIndex h2 hs) of
---              (Just n1, Just n2) -> return $ Table (swapElem n1 n2 hs) (Map.map (swapElem n1 n2) rs)
---              _                  -> return $ Table hs rs
---          swapElem n1 n2 l | n1 == n2  = l
---                           | n1 >  n2  = swapElem n2 n1 l
---                           | n1 <  n2  = let (l1, a:l2) = splitAt n1 l in
---                                         let (l3, b:l4) = splitAt (n2 - n1 - 1) l2 in
---                                         l1 ++ b:l3 ++ a:l4
---
+
+-- Table should not already have a column with the target name
+
+renameColumn :: Conn -> Name -> Name -> Name -> DatabaseLens
+renameColumn _ tname from to = 
+  SymLens () (fn from to) (fn to from) 
+    where fn from to c = do
+            lift $ do
+              (Table _ (sql, _) _) <- readTableStructure c tname
+              let (col1, rest1) = removeColumnName (getColumns sql) from
+                  rest          = map (head . words) rest1
+                  newcol        = to ++ (concat $ tail $ words col1)
+              temp <- getUniqueName c
+              runRaw c $ makeCreateStatement temp (newcol:rest1)
+              runRaw c $ "INSERT INTO " ++ temp ++ "(" ++ intercalate "," ("rowid":to:rest) ++ ")" ++
+                           " SELECT " ++ intercalate "," ("rowid":from:rest) ++ " FROM " ++ tname
+              dropTable c tname
+              renameTable c temp tname
+            return' c                

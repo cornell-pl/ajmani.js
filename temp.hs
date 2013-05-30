@@ -95,7 +95,31 @@ testInsertColumn c compConn = do
   case insertColumn compConn "emails" "timestamp" "VARCHAR(20)" "'20 May 2013'" of
     SymLens comp pr pl -> do
       comp' <- execStateT (pr c) comp
-      print =<< quickQuery' c "select * from emails" []
+      print =<< quickQuery' c "select rowid, * from emails" []
+      comp'' <- execStateT (pl c) comp'
+      print =<< quickQuery' c "select rowid, * from emails" []
+
+testDeleteColumn :: Conn -> Conn -> IO ()
+testDeleteColumn c compConn = do
+  e <- getTable c "emails"
+  case deleteColumn compConn "emails" "header" "VARCHAR(20)" "'From:Haskell'" of
+    SymLens comp pr pl -> do
+      comp' <- execStateT (pr c) comp
+      print =<< quickQuery' c "select rowid, * from emails" []
+      --comp'' <- execStateT (pl c) comp'
+      print =<< quickQuery' c "select rowid, * from emails" []
+
+testRenameColumn :: Conn -> Conn -> IO ()
+testRenameColumn c compConn = do
+  e <- getTable c "emails"
+  case renameColumn compConn "emails" "header" "from" of
+    SymLens comp pr pl -> do
+      comp' <- execStateT (pr c) comp
+      print =<< readTableStructure c "emails"
+      print =<< quickQuery' c "select rowid, * from emails" []
+      comp'' <- execStateT (pl c) comp'
+      print =<< readTableStructure c "emails"
+      print =<< quickQuery' c "select rowid, * from emails" []
 
 main :: IO ()
 main = do
@@ -107,3 +131,6 @@ main = do
   testInsert c compConn
   testAppend c compConn
   testInsertColumn c compConn
+  testDeleteColumn c compConn
+  disconnect c
+  disconnect compConn
