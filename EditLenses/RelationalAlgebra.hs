@@ -224,7 +224,7 @@ data Pred f =
   | CompareF f Binop f
   | AndP (Pred f) (Pred f)
   | OrP (Pred f) (Pred f)
-  | NotP (Pred f)
+--  | NotP (Pred f)
   | Nop
   deriving (Show, Eq)
 
@@ -233,7 +233,7 @@ instance Functor Pred where
     fmap f (CompareF f1 o f2) = CompareF (f f1) o (f f2)
     fmap f (AndP p1 p2)       = AndP (fmap f p1) (fmap f p2)
     fmap f (OrP p1 p2)        = OrP (fmap f p1) (fmap f p2)
-    fmap f (NotP p1)          = NotP (fmap f p1)
+--    fmap f (NotP p1)          = NotP (fmap f p1)
     fmap _ Nop                = Nop
 
 type JoinCondition = [(Field, Field)]
@@ -274,7 +274,7 @@ rewritePredicate n1 n2 p = case p of
   CompareF f o f' -> CompareF (repl f) o (repl f')
   AndP p1 p2 -> AndP (rewritePredicate n1 n2 p1) (rewritePredicate n1 n2 p2)
   OrP  p1 p2 -> OrP (rewritePredicate n1 n2 p1) (rewritePredicate n1 n2 p2)
-  NotP p' -> NotP (rewritePredicate n1 n2 p')
+--  NotP p' -> NotP (rewritePredicate n1 n2 p')
   Nop -> Nop
   where repl (Field n) = QField n2 n
         repl (QField t n) | t == n1   = QField n2 n
