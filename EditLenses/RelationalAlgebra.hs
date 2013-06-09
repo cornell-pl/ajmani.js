@@ -1,9 +1,12 @@
 {-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses, TypeFamilies, FlexibleInstances #-}
 
+
 module EditLenses.RelationalAlgebra where
 
+import Prelude hiding (init)
 import Control.Monad.State
 import Control.Applicative
+import Data.List.Utils (delFromAL)
 
 data Database
 
@@ -41,13 +44,17 @@ data Join = Join Name Name Name JoinCondition
 data Decompose = Decompose Name Name Name JoinCondition
 data Compose a b = Compose a b
 
+class SMO smo where
+  type C smo :: *
+  translateQuery :: smo -> C smo -> Query -> Query
+
 instance (SMO a, SMO b) => SMO (Compose a b) where
   type C (Compose a b) = (C a, C b)
   translateQuery (Compose a b) (c1, c2) q =
     translateQuery b c2 (translateQuery a c1 q)
 
 instance SMO CreateTable where
-  type C CreateTable = String
+  type C CreateTable = ()
   translateQuery _ _ q = q
 
 instance SMO DeleteTable where
@@ -147,45 +154,120 @@ instance SMO Decompose where
     TableQ n' | n == n'   -> JoinQ (TableQ c1) (TableQ c2) jc n
               | otherwise -> q
 
---composeLens :: EditLens da db c -> EditLens db dc c' -> EditLens da dc (c,c')
---composeLens (EditLens def1 pr1 pl1) (EditLens def2 pr2 pl2) = EditLens (def1, def2) pr pl
---  where pr a = do
---          (s1,s2) <- get
---          (b, s1') <- lift $ runStateT (pr1 a) s1
---          (c, s2') <- lift $ runStateT (pr2 b) s2
---          put (s1', s2')
---          return c
---        pl c = do
---          (s1,s2) <- get
---          (b, s2') <- lift $ runStateT (pl2 c) s2
---          (a, s1') <- lift $ runStateT (pl1 b) s1
---          put (s1', s2')
---          return a
+class (SMO smo) => DBEditLens smo where
+  init :: smo -> Database -> IO (C smo)
+  putr :: smo -> Edit -> (C smo) -> (Edit, C smo)
+  putl :: smo -> Edit -> (C smo) -> (Edit, C smo)
+  
+instance (DBEditLens a, DBEditLens b) => DBEditLens (Compose a b) where
+  init (Compose a b) = 
+    \d -> do c1 <- init a d
+             c2 <- init b d
+             return (c1,c2)
+  putr (Compose a b) e (c1,c2) = 
+    let (e', c1') = putr a e c1 in
+    let (e'', c2') = putr b e' c2 in
+    (e'', (c1', c2'))
+  putl (Compose a b) e (c1,c2) = 
+    let (e', c2') = putl b e c2 in
+    let (e'', c1') = putr a e' c1 in
+    (e'', (c1', c2'))
+    
+instance DBEditLens CreateTable where
+  init _ _ = return ()
+  putr _  e c = (e,c)
+  putl smo@(CreateTable n _) e c = case e of
+    InsertInto n' t | n == n' -> (IdEdit, c)
+    DeleteFrom n' p | n == n' -> (IdEdit, c)
+    UpdateWhere n' p fs | n == n' -> (IdEdit, c)
+    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
+                          let (e2, c'') = putl smo e2 c' in
+                          (ComposeEdits e1 e2, c'')
+    _ -> (e,c)
+    
+instance DBEditLens DeleteTable where
+  init (DeleteTable n _) _ = return n
+  putr smo@(DeleteTable n _) e c = case e of
+    InsertInto n' t | n == n' -> (IdEdit, c)
+    DeleteFrom n' p | n == n' -> (IdEdit, c)
+    UpdateWhere n' p fs | n == n' -> (IdEdit, c)
+    ComposeEdits e1 e2 -> let (e1, c') = putr smo e1 c in
+                          let (e2, c'') = putr smo e2 c' in
+                          (ComposeEdits e1 e2, c'')
+    _ -> (e,c)
+  putl _  e c = (e,c)
+  
+instance DBEditLens RenameTable where
+  init _ _ = return ()
+  putr smo@(RenameTable n1 n2) e c = case e of
+    InsertInto n t | n == n1 -> (InsertInto n2 t, c)
+    DeleteFrom n p | n == n1 -> (DeleteFrom n2 p, c)
+    UpdateWhere n p fs | n == n1 -> (UpdateWhere n2 p fs, c)
+    ComposeEdits e1 e2 -> let (e1, c') = putr smo e1 c in
+                          let (e2, c'') = putr smo e2 c' in
+                          (ComposeEdits e1 e2, c'')
+    _ -> (e,c)
+  putl smo@(RenameTable n1 n2) e c = case e of
+    InsertInto n t | n == n2 -> (InsertInto n1 t, c)
+    DeleteFrom n p | n == n2 -> (DeleteFrom n1 p, c)
+    UpdateWhere n p fs | n == n2 -> (UpdateWhere n1 p fs, c)
+    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
+                          let (e2, c'') = putl smo e2 c' in
+                          (ComposeEdits e1 e2, c'')
+    _ -> (e,c)
+    
+-- NOTE: ASSUMES THAT INSERTED/DELETED COLUMN IS AT THE BEGINNING
+-- THIS IS NOT ROBUST, AND NEEDS TO BE FIXED    
+instance DBEditLens InsertColumn where
+  init (InsertColumn n f v) db = do
+    cn <- getUniqueName db
+    --createTable db cn [f]
+    --applyEdit db $ "insert into " ++ cn ++ " select rowid, '" ++ v ++ "' from " ++ n
+    return cn
+  putr smo@(InsertColumn n f v) e c = case e of 
+    InsertInto n' t | n == n' -> (InsertInto n (v:t), c)
+    UpdateWhere n'       p fs | n == n' -> (UpdateWhere n p ((f,v):fs), c)
+    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
+                          let (e2, c'') = putl smo e2 c' in
+                          (ComposeEdits e1 e2, c'')
+    _ -> (e,c)
+  putl smo@(InsertColumn n f v) e c = case e of
+    InsertInto n' t | n == n' -> (InsertInto n (tail t), c)
+    -- UpdateWhere n' p fs | n == n' -> (UpdateWhere TODO p (delFromAL fs f), c)
+    -- DeleteFrom n' p | n == n' -> (DeleteFrom TODO p, c)
+    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
+                          let (e2, c'') = putl smo e2 c' in
+                          (ComposeEdits e1 e2, c'')
+    _ -> (e,c)
 
---inv :: DBEditLens la -> DBEditLens la
---inv (DBEditLens def pr pl) = DBEditLens def pl pr
---
---composeLens :: DBEditLens la -> DBEditLens la -> DBEditLens la
---composeLens (DBEditLens def1 pr1 pl1) (DBEditLens def2 pr2 pl2) = DBEditLens (def1, def2) pr pl
---  where pr a = do
---          (s1,s2) <- get
---          (b, s1') <- lift $ runStateT (pr1 a) s1
---          (c, s2') <- lift $ runStateT (pr2 b) s2
---          put (s1', s2')
---          return c
---        pl c = do
---          (s1,s2) <- get
---          (b, s2') <- lift $ runStateT (pl2 c) s2
---          (a, s1') <- lift $ runStateT (pl1 b) s1
---          put (s1', s2')
---          return a
-
---class EditLanguage a l where
---  apply :: l -> a -> IO a
---
---instance EditLanguage Database Edit where
---  apply = undefined
---
+instance DBEditLens DeleteColumn where
+  init (DeleteColumn n f v) db = do
+    cn <- getUniqueName db
+    --createTable db cn [f]
+    --applyEdit db $ "insert into " ++ cn ++ " select rowid, " ++ (getQName f) ++ " from " ++ n
+    return cn
+--  putr smo@(DeleteColumn n f v) e c = case e of 
+--    InsertInto n' t | n == n' -> (InsertInto n (v:t), c)
+--    UpdateWhere n'       p fs | n == n' -> (UpdateWhere n p ((f,v):fs), c)
+--    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
+--                          let (e2, c'') = putl smo e2 c' in
+--                          (ComposeEdits e1 e2, c'')
+--    _ -> (e,c)
+--  putl smo@(DeleteColumn n f v) e c = case e of
+--    InsertInto n' t | n == n' -> (InsertInto n (tail t), c)
+--    -- UpdateWhere n' p fs | n == n' -> (UpdateWhere TODO p (delFromAL fs f), c)
+--    -- DeleteFrom n' p | n == n' -> (DeleteFrom TODO p, c)
+--    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
+--                          let (e2, c'') = putl smo e2 c' in
+--                          (ComposeEdits e1 e2, c'')
+--    _ -> (e,c)
+  
+class EditLanguage a l where
+  apply :: l -> a -> IO a                          
+  
+instance EditLanguage Database Edit where
+  apply = undefined
+  
 --instance EditLanguage Database SMO where
 --  apply = undefined
 --
@@ -196,7 +278,7 @@ data Field =
   deriving (Show, Eq)
 
 type Type = String
-type Tuple = [Field]
+type Tuple = [Value]
 type Value = String
 
 key' :: Name
@@ -214,6 +296,25 @@ qualifiedKey :: Name -> Field
 qualifiedKey n = QField n key'
 qualifiedFKey :: Name -> Field
 qualifiedFKey n = QField n fkey'
+
+getName :: Field -> Name
+getName (Field fn) = fn
+getName (QField tn fn) = fn
+
+getQName :: Name -> Field -> Name
+getQName tn = maybeGetQName . (qualifyField tn)
+
+maybeGetQName :: Field -> Name
+maybeGetQName (Field fn) = fn
+maybeGetQName (QField tn fn) = tn ++ "." ++ fn
+
+qualifyField :: Name -> Field -> Field
+qualifyField tn (Field fn) = QField tn fn
+qualifyField tn (QField _ fn) = QField tn fn
+
+unQualifyField :: Field -> Field
+qualifyField (QField _ fn) = Field fn
+qualifyField f = f
 
 data Binop = Eq | Neq | Lt | Leq | Gt | Geq
   deriving (Show, Eq)
