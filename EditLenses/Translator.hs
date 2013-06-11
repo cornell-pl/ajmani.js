@@ -1,10 +1,11 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, OverlappingInstances #-}
 module EditLenses.Translator where
 
-import EditLenses.RelationalAlgebra
+import Database.HDBC 
+import EditLenses.Types
+import EditLenses.Utils
 import Data.List
-
-type SQL = String
+import Control.Monad
 
 class Translate st where
   translate :: st -> SQL
@@ -17,8 +18,16 @@ instance Translate Query where
   translate (JoinQ q1 q2 jc n) = unwords ["(SELECT * FROM (",translate q1,") JOIN (",translate q2,") ON",intercalate "AND" (map (\(a,b) -> unwords [translate a,"=",translate b]) jc),") AS", n]
   translate (UnionQ q1 q2 n) = unwords ["(SELECT * FROM (",translate q1,") UNION SELECT * FROM (",translate q1,")) AS",n]
   translate (TableQ n) = n
+  
+instance Translate Edit where
+  translate IdEdit = "0"
+  translate (InsertInto n t) = unwords ["INSERT INTO",n,"VALUES",translate t]
+  translate (DeleteFrom n p) = unwords ["DELETE FROM",n,"WHERE",translate p]
+  translate (UpdateWhere n p fvs) = unwords ["UPDATE",n,"SET",translate assns,"WHERE",translate p]
+    where assns = map (\(f,v) -> translate f ++ "=" ++ v) fvs
+  translate (ComposeEdits e1 e2) = translate e1 ++ ";" ++ translate e2
 
-instance Translate Predicate where
+instance (Translate f) => (Translate (Pred f)) where
   translate (CompareC f o c) = unwords ["(",translate f,translate o,c,")"]
   translate (CompareF f1 o f2) = unwords ["(",translate f1,translate o,translate f2,")"]
   translate (AndP p1 p2) = unwords ["(",translate p1,"AND",translate p2,")"]
@@ -28,6 +37,12 @@ instance Translate Predicate where
 instance Translate Field where
   translate (Field n) = n
   translate (QField t n) = intercalate "." [t,n]
+  
+instance Translate Value where
+  translate = id
+  
+instance (Translate a) => Translate [a] where
+  translate l = "(" ++ intercalate "," (map translate l) ++ ")" 
 
 instance Translate Binop where
   translate Eq  = "="
@@ -38,7 +53,7 @@ instance Translate Binop where
   translate Geq = ">="
 
 instance Translate CreateTable where
-  translate (CreateTable n ft) = unwords ["CREATE TABLE",n,"(",intercalate "," (map (\(a,b) -> unwords [translate $ unqual a,b]) ft),")"]
+  translate (CreateTable n ft) = unwords ["CREATE TABLE",n,"(",intercalate "," (map (\(a,b) -> unwords [translate $ unQualifyField a,b]) ft),")"]
 
 instance Translate DeleteTable where
   translate (DeleteTable n ft) = unwords ["DROP TABLE",n]
@@ -47,14 +62,17 @@ instance Translate RenameTable where
   translate (RenameTable from to) = unwords ["ALTER TABLE",from,"RENAME TO",to]
 
 instance Translate InsertColumn where
-  translate (InsertColumn n (f,t) v) = unwords ["ALTER TABLE",n,"ADD COLUMN",translate $ unqual f,v,"NOT NULL DEFAULT(",v,")"]
+  translate (InsertColumn n (f,t) v) = unwords ["ALTER TABLE",n,"ADD COLUMN",translate $ unQualifyField f,v,"NOT NULL DEFAULT(",v,")"]
 
 instance Translate DeleteColumn where
-  translate (DeleteColumn n (f,_) v) = unwords ["ALTER TABLE",n,"DROP COLUMN",translate $ unqual f]
+  translate (DeleteColumn n (f,_) v) = unwords ["ALTER TABLE",n,"DROP COLUMN",translate $ unQualifyField f]
 
 -- Remember it forgets about the constraints like Primary key, Distinct etc.
 instance Translate CopyTable where
   translate (CopyTable from to) = unwords ["SELECT * INTO",to,"FROM",from]
+
+instance Translate SelectInto where
+  translate (SelectInto from to fields pred) = unwords ["SELECT",translate $ map unQualifyField fields,"INTO",to,"FROM",from,"WHERE",translate pred]
 
 instance Translate Append where
   translate (Append t1 t2 to _) = unwords ["SELECT * INTO",to,"(","SELECT * FROM",t1,"UNION","SELECT * FROM",t2,")"]
@@ -72,6 +90,15 @@ instance Translate Decompose where
 instance (Translate a, Translate b) => Translate (Compose a b) where
   translate (Compose a b) = unwords [translate a,";",translate b,";"]
 
-unqual :: Field -> Field
-unqual (QField _ n) = Field n
-unqual f = f
+class EditLanguage a l where
+  applyEdit :: a -> l -> IO ()
+
+class QueryLanguage a l where
+  runQuery :: a -> l -> IO [[Value]]
+  
+instance QueryLanguage Database Query where
+  runQuery db q = liftM (map . map $ fromSql) $ quickQuery' db (translate q) []
+
+instance (Translate l) => EditLanguage Database l where
+  applyEdit db e = runRaw db $ translate e
+   
