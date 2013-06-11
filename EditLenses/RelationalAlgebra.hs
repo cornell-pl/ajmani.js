@@ -27,8 +27,8 @@ data Database
 data CreateTable = CreateTable Name [(Field, Type)]
 data DeleteTable = DeleteTable Name [(Field, Type)]
 data RenameTable = RenameTable Name Name
-data InsertColumn = InsertColumn Name Field Value
-data DeleteColumn = DeleteColumn Name Field Value
+data InsertColumn = InsertColumn Name (Field, Type) Value
+data DeleteColumn = DeleteColumn Name (Field, Type) Value
 data Append = Append Name Name Name Predicate
 data Split = Split Name Name Name Predicate
 data Join = Join Name Name Name JoinCondition
@@ -79,7 +79,7 @@ instance SMO InsertColumn where
 
 instance SMO DeleteColumn where
   type C DeleteColumn = String
-  translateQuery s@(DeleteColumn n f v) c q = case q of
+  translateQuery s@(DeleteColumn n _ v) c q = case q of
     SelectQ p q' -> SelectQ p (translateQuery s c q')
     ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
     RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
@@ -223,12 +223,12 @@ instance DBEditLens RenameTable where
 -- NOTE: ASSUMES THAT INSERTED/DELETED COLUMN IS AT THE BEGINNING
 -- THIS IS NOT ROBUST, AND NEEDS TO BE FIXED
 instance DBEditLens InsertColumn where
-  init (InsertColumn n f v) db = do
+  init (InsertColumn n (f,t) v) db = do
     cn <- getUniqueName db
-    --createTable db cn [f]
+    --createTable db cn [(f,t)]
     --applyEdit db $ "insert into " ++ cn ++ " select rowid, '" ++ v ++ "' from " ++ n
     return cn
-  putr db smo@(InsertColumn n f v) e = do
+  putr db smo@(InsertColumn n (f,_) v) e = do 
     c <- get
     lift $ applyEdit db $ rewriteEdit n c e
     case e of
@@ -239,8 +239,8 @@ instance DBEditLens InsertColumn where
         (e2, c'') <- lift $ runStateT (putl db smo e2) c'
         return $ ComposeEdits e1 e2
       _ -> return e
-  putl db smo@(InsertColumn n f v) e = do
-    c <- get
+  putl db smo@(InsertColumn n (f,_) v) e = do 
+    c <- get 
     e' <- case e of
       InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
     -- UpdateWhere n' p fs | n == n' -> return $ UpdateWhere TODO p (delFromAL fs f)
@@ -255,13 +255,13 @@ instance DBEditLens InsertColumn where
     return e'
 
 instance DBEditLens DeleteColumn where
-  init (DeleteColumn n f v) db = do
+  init (DeleteColumn n (f, t) v) db = do
     cn <- getUniqueName db
-    --createTable db cn [f]
+    --createTable db cn [(f, t)]
     --applyEdit db $ "insert into " ++ cn ++ " select rowid, " ++ (getQName f) ++ " from " ++ n
     return cn
-  putr db smo@(DeleteColumn n f v) e = do
-    c <- get
+  putr db smo@(DeleteColumn n (f, _) v) e = do 
+    c <- get 
     e' <- case e of
       InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
     -- UpdateWhere n' p fs | n == n' -> return $ UpdateWhere TODO p (delFromAL fs f)
@@ -274,7 +274,7 @@ instance DBEditLens DeleteColumn where
       _ -> return e
     lift $ applyEdit db $ rewriteEdit n c e'
     return e'
-  putl db smo@(DeleteColumn n f v) e = do
+  putl db smo@(DeleteColumn n (f, _) v) e = do 
     c <- get
     lift $ applyEdit db $ rewriteEdit n c e
     case e of
@@ -286,39 +286,58 @@ instance DBEditLens DeleteColumn where
         return $ ComposeEdits e1 e2
       _ -> return e
 
--- instance DBEditLens Append where
---   init (Append n1 n2 n p) db = do
---     cn1 <- getUniqueName db
---     cn2 <- getUniqueName db
---     -- create table with fields of n1 + extra fields for key
---     -- create table with fields of n2 + extra fields for key
---     -- applyEdit db $ "insert into " ++ cn1 ++ ...
---     -- applyEdit db $ "insert into " ++ cn ++ ...
---     return (cn1, cn2)
---   putr db (Append n1 n2 n p) e = do
---     (c1, c2, k) <- get
---     case e of
---       InsertInto n' t | n' == n1 ->
---         lift $ applyEdit db $ InsertInto c1 (k:t)
---         put (c1, c2, k+1)
---         return $ InsertInto n undefined -- (replace key with k)
---       InsertInto n' t | n' == n2 ->
---         lift $ applyEdit db $ InsertInto c2 (k:t)
---         put (c1, c2, k+1)
---         return $ InsertInto n undefined -- (replace key with k)
---       DeleteFrom n' p | n' == n1 (* && rowid notin p *) -> do
---         lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
---         return $ DeleteFrom n p
---       DeleteFrom n' p | n' == n2 (* && rowid notin p *) -> do
---         lift $ applyEdit db $ DeleteFrom c2 (fmap _ p)
---         return $ DeleteFrom n p
---       DeleteFrom n' p | n' == n1 -> do
---         let p1, p2 = splitPredicate p "rowid"
---         let rs = run $
---         lift $ applyEdit db $ DeleteFrom c2 (fmap _ p)
---         return $ DeleteFrom n p
-
-
+--instance DBEditLens Append where
+--  init (Append n1 n2 n p) db = do
+--    cn1 <- getUniqueName db
+--    cn2 <- getUniqueName db
+--    -- create table with fields of n1 + extra fields for key
+--    -- create table with fields of n2 + extra fields for key
+--    -- applyEdit db $ "insert into " ++ cn1 ++ ...
+--    -- applyEdit db $ "insert into " ++ cn ++ ...
+--    return (cn1, cn2)
+--  putr db (Append n1 n2 n p) e = do
+--    (c1, c2, k) <- get
+--    case e of
+--      InsertInto n' t | n' == n1 -> 
+--        lift $ applyEdit db $ InsertInto c1 (k:t)
+--        put (c1, c2, k+1)
+--        return $ InsertInto n undefined -- (replace key with k)
+--      InsertInto n' t | n' == n2 -> 
+--        lift $ applyEdit db $ InsertInto c2 (k:t)
+--        put (c1, c2, k+1)
+--        return $ InsertInto n undefined -- (replace key with k)
+--      DeleteFrom n' p | n' == n1 (* && rowid notin p *) -> do
+--        lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
+--        return $ DeleteFrom n p
+--      DeleteFrom n' p | n' == n2 (* && rowid notin p *) -> do
+--        lift $ applyEdit db $ DeleteFrom c2 (fmap _ p)
+--        return $ DeleteFrom n p
+--      DeleteFrom n' p | n' == n1 -> do
+--        let p1, p2 = splitPredicate p rowid
+--        let rs = runQuery db $ Project fkey $ Select c1 p2   
+--        lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
+--        return $ DeleteFrom n (AndP p1 (In key rs))
+--      DeleteFrom n' p | n' == n2 -> do
+--        let p1, p2 = splitPredicate p rowid
+--        let rs = runQuery db $ Project fkey $ Select c2 p2   
+--        lift $ applyEdit db $ DeleteFrom c2 (fmap _ p)
+--        return $ DeleteFrom n (AndP p1 (In key rs))
+--      UpdateWhere n' p fs | n' == n1 (* and key not in fs *) -> do
+--        let p1, p2 = splitPredicate p rowid
+--        let rs = runQuery fb $ Project fkey $ select c1 p2
+--        lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
+--        return $ UpdateWhere n (AndP p1 (In key rs)) fs
+--      UpdateWhere n' p fs | n' == n2 (* and key not in fs *) -> do
+--        let p1, p2 = splitPredicate p rowid
+--        let rs = runQuery fb $ Project fkey $ select c1 p2
+--        lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
+--        return $ UpdateWhere n (AndP p1 (In key rs)) fs
+--      ComposeEdits e1 e2 -> do 
+--        (e1, c') <- lift $ runStateT (putl db smo e1) (c1, c2, k)
+--        (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+--        return $ ComposeEdits e1 e2
+--      _ -> return e
+        
 class EditLanguage a l where
   applyEdit :: l -> a -> IO a
 
@@ -385,6 +404,12 @@ data Pred f =
   | OrP (Pred f) (Pred f)
 --  | NotP (Pred f)
   | Nop
+  | InC Value Query
+  | InF f Query
+  | NotInC Value Query
+  | NotInF f Query
+  | Exists Query
+  | NotExists Query
   deriving (Show, Eq)
 
 instance Functor Pred where
@@ -393,8 +418,10 @@ instance Functor Pred where
     fmap f (AndP p1 p2)       = AndP (fmap f p1) (fmap f p2)
     fmap f (OrP p1 p2)        = OrP (fmap f p1) (fmap f p2)
 --    fmap f (NotP p1)          = NotP (fmap f p1)
+    fmap f (InF f1 q)         = InF (f f1) q
+    fmap f (NotInF f1 q)      = NotInF (f f1) q
     fmap _ Nop                = Nop
-
+  
 type JoinCondition = [(Field, Field)]
 
 data Edit =
@@ -432,21 +459,40 @@ rewriteEdit :: Name -> Name -> Edit -> Edit
 rewriteEdit = undefined
 
 rewritePredicate :: Name -> Name -> Predicate -> Predicate
-rewritePredicate n1 n2 p = case p of
-  CompareC f o v  -> CompareC (repl f) o v
-  CompareF f o f' -> CompareF (repl f) o (repl f')
-  AndP p1 p2 -> AndP (rewritePredicate n1 n2 p1) (rewritePredicate n1 n2 p2)
-  OrP  p1 p2 -> OrP (rewritePredicate n1 n2 p1) (rewritePredicate n1 n2 p2)
---  NotP p' -> NotP (rewritePredicate n1 n2 p')
-  Nop -> Nop
+rewritePredicate n1 n2 = mapPredicate repl
   where repl (Field n) = QField n2 n
         repl (QField t n) | t == n1   = QField n2 n
                           | otherwise = QField t n
+                          
+mapPredicate :: (Field -> Field) -> Predicate -> Predicate
+mapPredicate fun p = case p of                          
+  CompareC f o v  -> CompareC (fun f) o v
+  CompareF f o f' -> CompareF (fun f) o (fun f')
+  AndP p1 p2 -> AndP (mapPredicate fun p1) (mapPredicate fun p2)
+  OrP  p1 p2 -> OrP (mapPredicate fun p1) (mapPredicate fun p2)
+--  NotP p' -> NotP (mapPredicate fun p')
+  Nop -> Nop
+  InC v q -> InC v (mapQuery fun q)
+  InF f q -> InF (fun f) (mapQuery fun q)
+  Exists q -> Exists (mapQuery fun q)
+  NotExists q -> NotExists (mapQuery fun q)
 
+mapQuery :: (Field -> Field) -> Query -> Query
+mapQuery fun q = case q of
+  SelectQ p q' -> SelectQ (mapPredicate fun p) (mapQuery fun q')
+  ProjectQ fs q' -> ProjectQ (map fun fs) (mapQuery fun q')
+  RenameQ f1 f2 q' -> RenameQ (fun f1) (fun f2) (mapQuery fun q')
+  JoinQ q1 q2 jc n -> JoinQ (mapQuery fun q1) (mapQuery fun q2) (mapJC fun jc) n 
+  UnionQ q1 q2 n -> UnionQ (mapQuery fun q1) (mapQuery fun q2) n  
+  TableQ n -> TableQ n
+
+mapJC :: (Field -> Field) -> JoinCondition -> JoinCondition
+mapJC fun = map (\(x,y) -> (fun x, fun y)) 
+  
 rewriteJC :: Name -> Name -> JoinCondition -> JoinCondition
 rewriteJC = undefined
 
-rewriteQuery :: Name -> Name -> Predicate -> Predicate
+rewriteQuery :: Name -> Name -> Query -> Query
 rewriteQuery = undefined
 
 --translateQuery :: SMO -> (Name, Name) -> Query -> Query
@@ -468,7 +514,7 @@ rewriteQuery = undefined
 --  TableQ n' | n1 == n'  -> TableQ n2
 --            | otherwise -> q
 --translateQuery s@(InsertColumn _ _ _) c q = q
---translateQuery s@(DeleteColumn n f v) c@(c1, _) q = case q of
+--translateQuery s@(DeleteColumn n _ v) c@(c1, _) q = case q of
 --  SelectQ p q' -> SelectQ p (translateQuery s c q')
 --  ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
 --  RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
@@ -560,7 +606,7 @@ rewriteQuery = undefined
 ------  where  putl = undefined
 -------- Important to have the default value in the complement (in the putr direction mainly)
 -------- This is because the complement could be used in the translateQuery function.
-------constructEditLens compDB c (DeleteColumn n f v) = undefined
+------constructEditLens compDB c (DeleteColumn n _ v) = undefined
 ------
 --------constructEditLens compDB _ (DeleteTable n) = do
 --------
