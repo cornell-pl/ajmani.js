@@ -50,7 +50,7 @@ instance Translate InsertColumn where
   translate (InsertColumn n (f,t) v) = unwords ["ALTER TABLE",n,"ADD COLUMN",translate $ unqual f,v,"NOT NULL DEFAULT(",v,")"]
 
 instance Translate DeleteColumn where
-  translate (DeleteColumn n (f,_) v) = unwords ["ALTER TABLE",n,"DROP COLUMN",f]
+  translate (DeleteColumn n (f,_) v) = unwords ["ALTER TABLE",n,"DROP COLUMN",translate $ unqual f]
 
 -- Remember it forgets about the constraints like Primary key, Distinct etc.
 instance Translate CopyTable where
