@@ -24,15 +24,6 @@ data Database
 --inv :: EditLens da db c -> EditLens db da c
 --inv (EditLens def pr pl) = EditLens def pl pr
 
-class SMO smo where
-  type C smo :: *
-  translateQuery :: smo -> C smo -> Query -> Query
-
-class (SMO smo) => DBEditLens smo where
-  init :: Database -> IO (C smo)
-  putr :: (Edit, C smo) -> (Edit, C smo)
-  putl :: (Edit, C smo) -> (Edit, C smo)
-
 data CreateTable = CreateTable Name [(Field, Type)]
 data DeleteTable = DeleteTable Name [(Field, Type)]
 data RenameTable = RenameTable Name Name
@@ -156,65 +147,75 @@ instance SMO Decompose where
 
 class (SMO smo) => DBEditLens smo where
   init :: smo -> Database -> IO (C smo)
-  putr :: smo -> Edit -> (C smo) -> (Edit, C smo)
-  putl :: smo -> Edit -> (C smo) -> (Edit, C smo)
+  putr :: Database -> smo -> Edit -> StateT (C smo) IO Edit
+  putl :: Database -> smo -> Edit -> StateT (C smo) IO Edit
   
 instance (DBEditLens a, DBEditLens b) => DBEditLens (Compose a b) where
   init (Compose a b) = 
     \d -> do c1 <- init a d
              c2 <- init b d
              return (c1,c2)
-  putr (Compose a b) e (c1,c2) = 
-    let (e', c1') = putr a e c1 in
-    let (e'', c2') = putr b e' c2 in
-    (e'', (c1', c2'))
-  putl (Compose a b) e (c1,c2) = 
-    let (e', c2') = putl b e c2 in
-    let (e'', c1') = putr a e' c1 in
-    (e'', (c1', c2'))
+  putr db (Compose a b) e = do
+    (c1, c2) <- get
+    (e', c1') <- lift $ runStateT (putr db a e) c1
+    (e'', c2') <- lift $ runStateT (putr db b e') c2
+    put (c1', c2')
+    return e''
+  putl db (Compose a b) e = do
+    (c1, c2) <- get
+    (e', c2') <- lift $ runStateT (putl db b e) c2
+    (e'', c1') <- lift $ runStateT (putl db a e') c1
+    put (c1', c2')
+    return e''
     
 instance DBEditLens CreateTable where
   init _ _ = return ()
-  putr _  e c = (e,c)
-  putl smo@(CreateTable n _) e c = case e of
-    InsertInto n' t | n == n' -> (IdEdit, c)
-    DeleteFrom n' p | n == n' -> (IdEdit, c)
-    UpdateWhere n' p fs | n == n' -> (IdEdit, c)
-    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
-                          let (e2, c'') = putl smo e2 c' in
-                          (ComposeEdits e1 e2, c'')
-    _ -> (e,c)
+  putr _ _  e = return e
+  putl db smo@(CreateTable n _) e = case e of
+    InsertInto n' t | n == n' -> return IdEdit
+    DeleteFrom n' p | n == n' -> return IdEdit
+    UpdateWhere n' p fs | n == n' -> return IdEdit
+    ComposeEdits e1 e2 -> do
+      c <- get
+      (e1, c') <- lift $ runStateT (putl db smo e1) c
+      (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+      return $ ComposeEdits e1 e2
+    _ -> return e
     
-instance DBEditLens DeleteTable where
-  init (DeleteTable n _) _ = return n
-  putr smo@(DeleteTable n _) e c = case e of
-    InsertInto n' t | n == n' -> (IdEdit, c)
-    DeleteFrom n' p | n == n' -> (IdEdit, c)
-    UpdateWhere n' p fs | n == n' -> (IdEdit, c)
-    ComposeEdits e1 e2 -> let (e1, c') = putr smo e1 c in
-                          let (e2, c'') = putr smo e2 c' in
-                          (ComposeEdits e1 e2, c'')
-    _ -> (e,c)
-  putl _  e c = (e,c)
+--instance DBEditLens DeleteTable where
+--  init (DeleteTable n _) _ = return n
+--  putr smo@(DeleteTable n _) e c = case e of
+--    InsertInto n' t | n == n' -> (IdEdit, c)
+--    DeleteFrom n' p | n == n' -> (IdEdit, c)
+--    UpdateWhere n' p fs | n == n' -> (IdEdit, c)
+--    ComposeEdits e1 e2 -> let (e1, c') = putr smo e1 c in
+--                          let (e2, c'') = putr smo e2 c' in
+--                          (ComposeEdits e1 e2, c'')
+--    _ -> (e,c)
+--  putl _  e c = (e,c)
   
 instance DBEditLens RenameTable where
   init _ _ = return ()
-  putr smo@(RenameTable n1 n2) e c = case e of
-    InsertInto n t | n == n1 -> (InsertInto n2 t, c)
-    DeleteFrom n p | n == n1 -> (DeleteFrom n2 p, c)
-    UpdateWhere n p fs | n == n1 -> (UpdateWhere n2 p fs, c)
-    ComposeEdits e1 e2 -> let (e1, c') = putr smo e1 c in
-                          let (e2, c'') = putr smo e2 c' in
-                          (ComposeEdits e1 e2, c'')
-    _ -> (e,c)
-  putl smo@(RenameTable n1 n2) e c = case e of
-    InsertInto n t | n == n2 -> (InsertInto n1 t, c)
-    DeleteFrom n p | n == n2 -> (DeleteFrom n1 p, c)
-    UpdateWhere n p fs | n == n2 -> (UpdateWhere n1 p fs, c)
-    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
-                          let (e2, c'') = putl smo e2 c' in
-                          (ComposeEdits e1 e2, c'')
-    _ -> (e,c)
+  putr db smo@(RenameTable n1 n2) e = case e of
+    InsertInto n t | n == n1 -> return $ InsertInto n2 t
+    DeleteFrom n p | n == n1 -> return $ DeleteFrom n2 p
+    UpdateWhere n p fs | n == n1 -> return $ UpdateWhere n2 p fs
+    ComposeEdits e1 e2 -> do
+      c <- get
+      (e1, c') <- lift $ runStateT (putl db smo e1) c
+      (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+      return $ ComposeEdits e1 e2
+    _ -> return e
+  putl db smo@(RenameTable n1 n2) e = case e of
+    InsertInto n t | n == n2 -> return $ InsertInto n1 t
+    DeleteFrom n p | n == n2 -> return $ DeleteFrom n1 p
+    UpdateWhere n p fs | n == n2 -> return $ UpdateWhere n1 p fs
+    ComposeEdits e1 e2 -> do 
+      c <- get
+      (e1, c') <- lift $ runStateT (putl db smo e1) c
+      (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+      return $ ComposeEdits e1 e2
+    _ -> return e
     
 -- NOTE: ASSUMES THAT INSERTED/DELETED COLUMN IS AT THE BEGINNING
 -- THIS IS NOT ROBUST, AND NEEDS TO BE FIXED    
@@ -224,21 +225,31 @@ instance DBEditLens InsertColumn where
     --createTable db cn [f]
     --applyEdit db $ "insert into " ++ cn ++ " select rowid, '" ++ v ++ "' from " ++ n
     return cn
-  putr smo@(InsertColumn n f v) e c = case e of 
-    InsertInto n' t | n == n' -> (InsertInto n (v:t), c)
-    UpdateWhere n'       p fs | n == n' -> (UpdateWhere n p ((f,v):fs), c)
-    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
-                          let (e2, c'') = putl smo e2 c' in
-                          (ComposeEdits e1 e2, c'')
-    _ -> (e,c)
-  putl smo@(InsertColumn n f v) e c = case e of
-    InsertInto n' t | n == n' -> (InsertInto n (tail t), c)
-    -- UpdateWhere n' p fs | n == n' -> (UpdateWhere TODO p (delFromAL fs f), c)
-    -- DeleteFrom n' p | n == n' -> (DeleteFrom TODO p, c)
-    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
-                          let (e2, c'') = putl smo e2 c' in
-                          (ComposeEdits e1 e2, c'')
-    _ -> (e,c)
+  putr db smo@(InsertColumn n f v) e = do 
+    c <- get
+    lift $ applyEdit db $ rewriteEdit n c e 
+    case e of 
+      InsertInto n' t | n == n' -> return $ InsertInto n (v:t)
+      UpdateWhere n' p fs | n == n' -> return $ UpdateWhere n p ((f,v):fs)
+      ComposeEdits e1 e2 -> do 
+        (e1, c') <- lift $ runStateT (putl db smo e1) c
+        (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+        return $ ComposeEdits e1 e2
+      _ -> return e
+  putl db smo@(InsertColumn n f v) e = do 
+    c <- get 
+    e' <- case e of
+      InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
+    -- UpdateWhere n' p fs | n == n' -> return $ UpdateWhere TODO p (delFromAL fs f)
+    -- DeleteFrom n' p | n == n' -> return $ DeleteFrom TODO p
+      ComposeEdits e1 e2 -> do 
+        (e1, c') <- lift $ runStateT (putl db smo e1) c
+        (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+        put c''
+        return $ ComposeEdits e1 e2
+      _ -> return e
+    lift $ applyEdit db $ rewriteEdit n c e'
+    return e'
 
 instance DBEditLens DeleteColumn where
   init (DeleteColumn n f v) db = do
@@ -246,27 +257,70 @@ instance DBEditLens DeleteColumn where
     --createTable db cn [f]
     --applyEdit db $ "insert into " ++ cn ++ " select rowid, " ++ (getQName f) ++ " from " ++ n
     return cn
---  putr smo@(DeleteColumn n f v) e c = case e of 
---    InsertInto n' t | n == n' -> (InsertInto n (v:t), c)
---    UpdateWhere n'       p fs | n == n' -> (UpdateWhere n p ((f,v):fs), c)
---    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
---                          let (e2, c'') = putl smo e2 c' in
---                          (ComposeEdits e1 e2, c'')
---    _ -> (e,c)
---  putl smo@(DeleteColumn n f v) e c = case e of
---    InsertInto n' t | n == n' -> (InsertInto n (tail t), c)
---    -- UpdateWhere n' p fs | n == n' -> (UpdateWhere TODO p (delFromAL fs f), c)
---    -- DeleteFrom n' p | n == n' -> (DeleteFrom TODO p, c)
---    ComposeEdits e1 e2 -> let (e1, c') = putl smo e1 c in
---                          let (e2, c'') = putl smo e2 c' in
---                          (ComposeEdits e1 e2, c'')
---    _ -> (e,c)
+  putr db smo@(DeleteColumn n f v) e = do 
+    c <- get 
+    e' <- case e of
+      InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
+    -- UpdateWhere n' p fs | n == n' -> return $ UpdateWhere TODO p (delFromAL fs f)
+    -- DeleteFrom n' p | n == n' -> return $ DeleteFrom TODO p
+      ComposeEdits e1 e2 -> do 
+        (e1, c') <- lift $ runStateT (putl db smo e1) c
+        (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+        put c''
+        return $ ComposeEdits e1 e2
+      _ -> return e
+    lift $ applyEdit db $ rewriteEdit n c e'
+    return e'
+  putl db smo@(DeleteColumn n f v) e = do 
+    c <- get
+    lift $ applyEdit db $ rewriteEdit n c e 
+    case e of 
+      InsertInto n' t | n == n' -> return $ InsertInto n (v:t)
+      UpdateWhere n' p fs | n == n' -> return $ UpdateWhere n p ((f,v):fs)
+      ComposeEdits e1 e2 -> do 
+        (e1, c') <- lift $ runStateT (putl db smo e1) c
+        (e2, c'') <- lift $ runStateT (putl db smo e2) c'
+        return $ ComposeEdits e1 e2
+      _ -> return e
+
+instance DBEditLens Append where
+  init (Append n1 n2 n p) db = do
+    cn1 <- getUniqueName db
+    cn2 <- getUniqueName db
+    -- create table with fields of n1 + extra fields for key
+    -- create table with fields of n2 + extra fields for key
+    -- applyEdit db $ "insert into " ++ cn1 ++ ...
+    -- applyEdit db $ "insert into " ++ cn ++ ...
+    return (cn1, cn2)
+  putr db (Append n1 n2 n p) e = do
+    (c1, c2, k) <- get
+    case e of
+      InsertInto n' t | n' == n1 -> 
+        lift $ applyEdit db $ InsertInto c1 (k:t)
+        put (c1, c2, k+1)
+        return $ InsertInto n undefined -- (replace key with k)
+      InsertInto n' t | n' == n2 -> 
+        lift $ applyEdit db $ InsertInto c2 (k:t)
+        put (c1, c2, k+1)
+        return $ InsertInto n undefined -- (replace key with k)
+      DeleteFrom n' p | n' == n1 (* && rowid notin p *) -> do
+        lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
+        return $ DeleteFrom n p
+      DeleteFrom n' p | n' == n2 (* && rowid notin p *) -> do
+        lift $ applyEdit db $ DeleteFrom c2 (fmap _ p)
+        return $ DeleteFrom n p
+      DeleteFrom n' p | n' == n1 -> do
+        let p1, p2 = splitPredicate p "rowid"
+        let rs = run $  
+        lift $ applyEdit db $ DeleteFrom c2 (fmap _ p)
+        return $ DeleteFrom n p
+        
   
 class EditLanguage a l where
-  apply :: l -> a -> IO a                          
+  applyEdit :: l -> a -> IO a                          
   
-instance EditLanguage Database Edit where
-  apply = undefined
+instance EditLanguage Edit Database where
+  applyEdit = undefined
   
 --instance EditLanguage Database SMO where
 --  apply = undefined
@@ -278,8 +332,9 @@ data Field =
   deriving (Show, Eq)
 
 type Type = String
-type Tuple = [Value]
 type Value = String
+type Fields = [Field]
+type Tuple = [Value]
 
 key' :: Name
 key' = "rowid"
@@ -313,8 +368,8 @@ qualifyField tn (Field fn) = QField tn fn
 qualifyField tn (QField _ fn) = QField tn fn
 
 unQualifyField :: Field -> Field
-qualifyField (QField _ fn) = Field fn
-qualifyField f = f
+unQualifyField (QField _ fn) = Field fn
+unQualifyField f = f
 
 data Binop = Eq | Neq | Lt | Leq | Gt | Geq
   deriving (Show, Eq)
@@ -341,6 +396,7 @@ type JoinCondition = [(Field, Field)]
 
 data Edit =
     IdEdit
+  -- Make this InsertInto Name Fields Query TODO
   | InsertInto Name Tuple
   -- | InsertQuery Name Query
   | DeleteFrom Name Predicate
@@ -368,6 +424,9 @@ copyTable = undefined
 
 createTable :: Database -> Name -> [(Field, Type)] -> IO ()
 createTable = undefined
+
+rewriteEdit :: Name -> Name -> Edit -> Edit
+rewriteEdit = undefined
 
 rewritePredicate :: Name -> Name -> Predicate -> Predicate
 rewritePredicate n1 n2 p = case p of
