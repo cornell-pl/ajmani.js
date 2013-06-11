@@ -39,5 +39,3 @@ instance Translate Binop where
 
 instance Translate CreateTable where
     translate (CreateTable n ft) = unwords ["CREATE TABLE",n,"(",intercalate "," (map (\(a,b) -> unwords [a,b]) ft),")"]
-                            
-                                             
