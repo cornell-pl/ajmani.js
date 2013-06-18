@@ -58,7 +58,8 @@ library
   other-modules:       
                        EditLenses.RelationalAlgebra,
                        EditLenses.Types,
-                       EditLenses.Utils
+                       EditLenses.Utils,
+                       EditLenses.Main
                        
 test-Suite tests
   type: exitcode-stdio-1.0

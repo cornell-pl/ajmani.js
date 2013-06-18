@@ -53,19 +53,21 @@ instance Translate Binop where
   translate Geq = ">="
 
 instance Translate CreateTable where
-  translate (CreateTable n ft) = unwords ["CREATE TABLE",n,"(",intercalate "," (map (\(a,b) -> unwords [translate $ unQualifyField a,b]) ft),")"]
-
+  translate (CreateTable (Table n k) ft) = unwords ["CREATE TABLE",n,"(",fields,")"]
+    where fields = intercalate "," ((map (\(a,b) -> unwords [getName a,b]) ft) ++ [pkey]) 
+          pkey = "PRIMARY KEY(" ++ intercalate "," (map getName k) ++ ")"
+          
 instance Translate DeleteTable where
-  translate (DeleteTable n ft) = unwords ["DROP TABLE",n]
+  translate (DeleteTable (Table n _) _) = unwords ["DROP TABLE",n]
 
 instance Translate RenameTable where
   translate (RenameTable from to) = unwords ["ALTER TABLE",from,"RENAME TO",to]
 
 instance Translate InsertColumn where
-  translate (InsertColumn n (f,t) v) = unwords ["ALTER TABLE",n,"ADD COLUMN",translate $ unQualifyField f,v,"NOT NULL DEFAULT(",v,")"]
+  translate (InsertColumn (Table n _) (f,t) v) = unwords ["ALTER TABLE",n,"ADD COLUMN",translate $ unQualifyField f,v,"NOT NULL DEFAULT(",v,")"]
 
 instance Translate DeleteColumn where
-  translate (DeleteColumn n (f,_) v) = unwords ["ALTER TABLE",n,"DROP COLUMN",translate $ unQualifyField f]
+  translate (DeleteColumn (Table n _) (f,_) v) = unwords ["ALTER TABLE",n,"DROP COLUMN",translate $ unQualifyField f]
 
 -- Remember it forgets about the constraints like Primary key, Distinct etc.
 instance Translate CopyTable where
@@ -97,8 +99,8 @@ class QueryLanguage a l where
   runQuery :: a -> l -> IO [[Value]]
   
 instance QueryLanguage Database Query where
-  runQuery db q = liftM (map . map $ fromSql) $ quickQuery' db (translate q) []
+  runQuery db q = liftM (map . map $ fromSql) $ quickQuery' db (translate q ++ ";") []
 
 instance (Translate l) => EditLanguage Database l where
-  applyEdit db e = runRaw db $ translate e
+  applyEdit db e = runRaw db $ translate e ++ ";"
    

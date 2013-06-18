@@ -11,6 +11,7 @@
 \newcommand{\raghu}[1]{\finish{\textbf{\textcolor{blue}{[#1---Raghu]}}}}
 
 \newcommand{\defeq}{\ensuremath{\stackrel{\Delta}{=}}}
+\newcommand{\Unit}{\ensuremath{\mathbf{Unit}}}
 
 %opening
 \title{}
@@ -21,45 +22,52 @@
 \maketitle
 
 \section{Edit lenses with modifiable complement, aka M-Edit Lenses}
-An edit lens between modules X and Y is $\langle C, init_C, K, putr, putl \rangle$. \\
-The type of $putr$, $dX \times C \to dY \times C$ can be expressed as the isomorphic type $(dX \times C \to dY, dX \to C \to C)$. Thus, we can view the $putr$ function as having two components; one that translates an edit on $X$ into an edit on $Y$ (using $Y$-data from the complement), and another that updates the complement (its $X$-data) with respect to the edit on $X$.
+An edit lens between modules X and Y is $\langle C, init_C, K, putr, putl \rangle$, where $C$ is the type of complement, and $K \subseteq X \times C \times Y$ is the consistency relation. \\
+The type of $putr$, $dX \times C \to dY \times C$ can be expressed as the isomorphic type $(dX \times C \to dY, dX \to C \to C)$. Thus, we can view the $putr$ function as having two components; one that translates an edit on $X$ into an edit on $Y$ (using $X$-data from the complement), and another that updates the complement (its $X$-data and alignment data) with respect to the edit on $X$.
 
-[NB: We can view data as being $X$-data, $Y$-data, shared data, or alignment data. By $X$-data, we mean data that is present \emph{solely} in $X$ and not in $Y$, and similarly $Y$-data. An example of alignment data is a mapping of indices between two lists. The collection of $X$-indices can be considered $X$-data (and similarly for $Y$), but the mapping itself depends on both. This isn't shared data as it is not data that is present in both $X$ and $Y$ separately.]
+[NB: We can view data as being $X$-data, $Y$-data, shared data, or alignment data. By $X$-data, we mean data that is present \emph{solely} in $X$ and not in $Y$, and similarly $Y$-data. An example of alignment data is a mapping of indices between two lists. The collection of $X$-indices can be considered $X$-data (and similarly for $Y$), but the mapping itself depends on both. This isn't shared data as it is not data that is present in both $X$ and $Y$ separately. An alternative term for alignment data can be \emph{state}.]
 
-For a symmetric lens, the complement represents the data that is not shared. In an edit lens, there is may be no necessity to capture all this data. For example, if we consider a list-mapping edit lens where the updates are list reorderings, the complement could just be $()$. 
+For a symmetric lens, the complement represents the data that is not shared. In an edit lens, there is may be no necessity to capture all this data. For example, if we consider a list-mapping edit lens where the updates are list reorderings, the complement could just be \Unit. 
 
 Alternatively, let us compare symmetric and edit lenses between $A \times D$ and $A \times E$, where updates include a filter operation. The complement for the symmetric lens would be $D \times E$. 
-The complement for the edit lens needs to be $A \times D \times E$; this is because we need to write the transformation $d(A \times D) \to C \to C$, and doing so requires access to the data in $A$. If the complement were just $D \times E$, an update $filter~on~A=a$ cannot be processed , as there is insufficient information to know which elements get filtered.
+The complement for the edit lens needs to be $A \times D \times E$; this is because we need to write the transformation $d(A \times D) \to C \to C$, and doing so requires access to the data in $A$. If the complement were just $D \times E$, an update $filter~on~(A=a)$ cannot be processed , as there is insufficient information to know which elements get filtered.
 Thus, for a sufficiently rich set of updates, the complement often subsumes the entirety of the data in the two sources.
-[This does not arise in Hofmann et. al.'s paper, as the monoids of edits they consider are not rich enough.]
-
-Even if we assume the complement is rich enough and contains all the needed information then large updates which updates filtered data will result in the constuction of very large edit. For example, consider the case of a database update in which a column is deleted from the table. We construct an edit lens $dA \times C -> dB \times C$. Assuming the richness of the complement we store the whole table in the complement. Now assume an update to $A$ which deletes records based on some predicate on the deleted column. This update can not be directly translated to $dB$ as B does not have the deleted column. So first a filter is applied on the complement to find out the records to be deleted and then those are embedded in the edit $dB$, which results in size of edit to be as large as the number of records in the table.
+[This issue does not arise in Hofmann et. al.'s paper, as the monoids of edits they consider are not rich enough.]
 
 Ideally, the complement update part of the $putr$ transformation would have the type $(dX, X) \to C \to C$. The changes to the $X$-related components of $C$ can be calcluated from the first argument, and the remainder of $C$ can be propagated from the second argument. 
 
 The complement must contain all the alignment data, since it doesn't exist anywhere else. If the complement contains all the $X$-data, then the complement update part of $putr$ could have its type replaced with $(dX, Y) \to C \to C$, since the shared data is contained in both $X$ and $Y$. The reason for wanting to do this is that $Y$ may be materialized, while $X$ may not. 
 In the case of schema evolution, we want to translate $V1$ updates to a $V2$ database, where $V2$ is materialized, and $V1$ is not.
 
+Even if the complement contains sufficient information, there is still a problem that the lens may produce very large edits. For example, consider the case of a database update in which a column is deleted from a table. This has a corresponding edit lens with a $putr$ function of type $dA \times C \to dB \times C$. If we have an edit that deletes records depending on whether a predicate holds of the deleted column, this edit can not be directly translated to an edit on dB. This is because $B$ does not have the deleted column. Thus, we first need to apply a filter to the complement to discover which records will be deleted, and then embed this result in a $dB$ edit. This results in the size of the edit being proportional to the result of the filter, which can be the entire table in the worst case.
+
+If we have replaced the complement update part of $putr$ with $(dX, Y) \to C \to C$, or more generally, $(dX, Y) \to dC$, then we can combine the two components of $putr$ as $dX \to d(Y \times C)$. This solves the problem of $putr$ producing a large edit, since the result of the computation on $C$ does not need to be embedded in the edit. Instead, the computation itself can be expressed in the edit and computed later.
+
 \section{M-Edit lens}
 
 \subsection{Definition}
-An M-edit lens between modules $X$ and $Y$ consists of $\langle C, X \otimes C, Y \otimes C, init_C, K, putr, putl \rangle$. $X \otimes C$ (similarly $Y \otimes C$) is a module $\langle |X| \times C, (init_X, init_C), d(X \otimes C), \cdot_{X \otimes C} \rangle$. The type of $putr$ is $dX \to d(Y \otimes C)$. The type of $putl$ is $dY \to d(Y \otimes C)$. $putl$ and $putr$ are monoid homomorphisms.
+An M-edit lens between modules $X$ and $Y$ consists of $\langle C, X \otimes C, Y \otimes C, init_C, K, putr, putl \rangle$. $X \otimes C$ (similarly $Y \otimes C$) is a module $\langle |X| \times C, (init_X, init_C), d(X \otimes C), \cdot_{X \otimes C} \rangle$. $C$ is the type of complement, and $K \subseteq |X| \times C \times |Y|$ is the consistency relation. $X \otimes C$ is a module of edits for the product type $|X| \times C$. The type of $putr$ is $dX \to d(Y \otimes C)$. The type of $putl$ is $dY \to d(X \otimes C)$. $putl$ and $putr$ are (normal) monoid homomorphisms.
 
 \subsection{Lifting on tensor products}
 We can lift a module $X$ into a module $lift_C(X)$ of the form $X \otimes C$ as follows. 
+
+$ lift_C(X) \defeq \langle |X| \times C, (init_X, init_C), d(X \otimes C), \cdot_{X \otimes C}$
+
+The monoid of edits of the $lift(X)$ (of type $X \otimes C$) is the same as that of $X$, but the action is different.
 
 $ d(X \otimes C) \defeq dX$
 
 $ dx \cdot_{X \otimes C} (x,c) \defeq (dx \cdot_X x, c) $
 
-The monoid of edits of the $lift(X)$ (of type $X \otimes C$) is the same as that of $X$, but the action is different.
+Using this, we can lift a lens $l: X \leftrightarrow Y$ as 
 
-In this way, we can lift a lens $l: X \leftrightarrow Y$ as $lift_C(l) = \langle l.C \times C, lift_C(X \otimes C), lift_C(Y \otimes C), (init_{l.C}, init_C), K \times C, l.putr, l.putl \rangle$ 
+$lift_C(l) = \langle l.C \times C, lift_C(X \otimes l.C), lift_C(Y \otimes l.C), (init_{l.C}, init_C), \{ (x,(c,c'),y) \mid (x,c,y) \in K ~\wedge~ c' in C \}, l.putr, l.putl \rangle$ 
 
 \subsection{Composing M-edit lenses}
 Given modules $X, Y, Z$, and M-edit lenses $k : X \leftrightarrow Y$ and $l : Y \leftrightarrow Z$, we can define their composition $k;l : X \leftrightarrow Z$ as follows.
 
-$k;l \defeq \langle k.C \times l.C, lift_{l.C}(X \otimes k.C), lift_{k.C}(Z \otimes l.C), (init_{k.C}, init_{l.C}), k.K \circ l.K, putr, putl \rangle$
+$k;l \defeq \langle k.C \times l.C, lift_{l.C}(X \otimes k.C), lift_{k.C}(Z \otimes l.C), (init_{k.C}, init_{l.C}), \\
+  \{ (x,(c,c'),z) \mid \exists y. (x,c,y) \in k.K ~\wedge~ (y,c',z) \in l.K\}, putr, putl \rangle$
 
 $putr~dx \defeq l'.putr (k.putr~dx) \textnormal{ where } l' = lift_{k.C}(l)$
 
@@ -83,11 +91,11 @@ $putl~dz \defeq l'.putl (k.putl~dz) \textnormal{ where } l' = lift_{l.C}(k)$
 \subsection{Embedding Edit lenses in M-Edit lenses}
 Given an edit lens $l:X \leftrightarrow Y$, we can embed it in an M-edit lens $M(l)$ as follows. 
 
-$M(l) = \langle l.C, X \otimes C, Y \otimes C, l.init_C, l.K, id, id \rangle$
+$M(l) = \langle l.C, X \otimes C, Y \otimes C, init_{l.C}, l.K, id, id \rangle$
 
-$X \otimes C = \langle |X| \times C, (X.init, C.init), dY, \cdot_{X \otimes C} \rangle$
+$X \otimes C = \langle |X| \times C, (init_X, init_C), dY, \cdot_{X \otimes C} \rangle$
 
-$Y \otimes C = \langle |Y| \times C, (Y.init, C.init), dX, \cdot_{Y \otimes C} \rangle$
+$Y \otimes C = \langle |Y| \times C, (init_Y, init_C), dX, \cdot_{Y \otimes C} \rangle$
 
 $ dx \cdot_{Y \otimes C} (y,c) = (dy \cdot_Y y, c') \textnormal{ where } (dy, c') = l.putr (dx, c)$
 
@@ -98,7 +106,7 @@ We need to verify the following
  \item $dx \cdot_{Y \otimes C} (y,c) = (y', c')$ iff $(putr (dx, c) = (dy, c')$ and $dy \cdot_Y y = y')$\\
        This is by definition.
  \item The laws for $M(l)$ imply the laws for $l$.
-       This is also by definition. Rewriting the laws for M-lenses using the definitions of $putl$, $putr$, and the monoid actions for $M(l)$ gives us exactly the lens laws for $l$.
+       This is also by definition. Rewriting the laws for M-lenses using the definitions of $putl$, $putr$, and the monoid actions for $M(l)$ gives us exactly the edit lens laws for $l$.
 \end{enumerate}
 
 \subsection{Embedding M-Edit lenses in Edit lenses}
@@ -143,10 +151,12 @@ Consider the partition lens in Hofmann et al. If we were to enrich the update la
   \end{align*}
 
 \section{Converting an M-Edit lens into a pair of (asymmetric) M-Edit lenses}
-In the setting of evolution/migration, only one of the two sources (in addition to the complement) is materialized. In such a scenario, it may be efficient to combine the materialized source with the complement to create a 'super-structure', and use lenses to separately translate between this structure and both sources. 
+  \comment{Way in progress}
 
-This may not be viable in alternative settings, particularly in distributed settings, where both sources need to materialized. Alternatively, there may be security concerns that don't allow sharing all the data.
+In the setting of evolution/migration, only one of the two sources (in addition to the complement) is materialized. In such a scenario, it may be efficient to combine the materialized source with the complement to create a 'super-structure', and use (asymmetric) lenses to separately translate between this structure and both sources. 
 
-There may not be a one-size-fits-all way to do this for an arbitrary M-Edit lens.
+This may not be viable in alternative settings, particularly in distributed settings, where both sources need to materialized. Alternatively, there may be security concerns that don't allow all the data to be shared.
+
+There seems to be an obvious way to do this for schema evolution in databases. There may not be general way to do this for an arbitrary M-Edit lens.
 
 \end{document}

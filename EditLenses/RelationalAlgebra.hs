@@ -46,12 +46,12 @@ instance (DBEditLens a, DBEditLens b) => DBEditLens (Compose a b) where
 instance DBEditLens CreateTable where
   type C CreateTable = String
   translateR _ _ q = q
-  translateL (CreateTable n f) = translateR (DeleteTable n f)
+  translateL (CreateTable t f) = translateR (DeleteTable t f)
   -- Complement table (name) is the same as the source table (name)
-  init e@(CreateTable n fs) db = applyEdit db e >> return n
+  init e@(CreateTable (Table n _) fs) db = applyEdit db e >> return n
   putr _ _ e = return e
-  putl db smo@(CreateTable n _) e = case e of
-    InsertInto n' t | n == n' -> return IdEdit
+  putl db smo@(CreateTable (Table n _) _) e = case e of
+    InsertInto n' _ _ | n == n' -> return IdEdit
     DeleteFrom n' p | n == n' -> return IdEdit
     UpdateWhere n' p fs | n == n' -> return IdEdit
     ComposeEdits e1 e2 -> do
@@ -60,11 +60,11 @@ instance DBEditLens CreateTable where
       (e2, c'') <- lift $ runStateT (putl db smo e2) c'
       return $ ComposeEdits e1 e2
     _ -> return e
-  migrate = undefined
+  migrate _ _ _ = return ()
 
 instance DBEditLens DeleteTable where
   type C DeleteTable = String
-  translateR s@(DeleteTable n _) c q = case q of
+  translateR s@(DeleteTable (Table n _) _) c q = case q of
     SelectQ p q' -> SelectQ p (translateR s c q')
     ProjectQ jc q' -> ProjectQ jc (translateR s c q')
     RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
@@ -72,10 +72,10 @@ instance DBEditLens DeleteTable where
     UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
     TableQ n' | n == n'   -> TableQ c
               | otherwise -> q
-  translateL (DeleteTable n f) = translateR (CreateTable n f)
-  init (DeleteTable n _) _ = return n
-  putr db smo@(DeleteTable n _) e = case e of
-    InsertInto n' t | n == n' -> return IdEdit
+  translateL (DeleteTable t f) = translateR (CreateTable t f)
+  init (DeleteTable (Table n _) _) _ = return n
+  putr db smo@(DeleteTable (Table n _) _) e = case e of
+    InsertInto n' _ _ | n == n' -> return IdEdit
     DeleteFrom n' p | n == n' -> return IdEdit
     UpdateWhere n' p fs | n == n' -> return IdEdit
     ComposeEdits e1 e2 -> do
@@ -85,7 +85,7 @@ instance DBEditLens DeleteTable where
       return $ ComposeEdits e1 e2
     _ -> return e
   putl _ _ e = return e
-  migrate = undefined
+  migrate = id
 
 instance DBEditLens RenameTable where
   type C RenameTable = ()
@@ -100,7 +100,7 @@ instance DBEditLens RenameTable where
   translateL s@(RenameTable n1 n2) = translateR (RenameTable n2 n1)
   init _ _ = return ()
   putr db smo@(RenameTable n1 n2) e = case e of
-    InsertInto n t | n == n1 -> return $ InsertInto n2 t
+    InsertInto n fs q | n == n1 -> return $ InsertInto n2 fs $ translateL s q
     DeleteFrom n p | n == n1 -> return $ DeleteFrom n2 p
     UpdateWhere n p fs | n == n1 -> return $ UpdateWhere n2 p fs
     ComposeEdits e1 e2 -> do
@@ -110,7 +110,7 @@ instance DBEditLens RenameTable where
       return $ ComposeEdits e1 e2
     _ -> return e
   putl db smo@(RenameTable n1 n2) e = case e of
-    InsertInto n t | n == n2 -> return $ InsertInto n1 t
+    InsertInto n fs q | n == n2 -> return $ InsertInto n1 $ translateL smo q
     DeleteFrom n p | n == n2 -> return $ DeleteFrom n1 p
     UpdateWhere n p fs | n == n2 -> return $ UpdateWhere n1 p fs
     ComposeEdits e1 e2 -> do
@@ -127,25 +127,25 @@ instance DBEditLens InsertColumn where
   type C InsertColumn = String
   translateR (InsertColumn _ _ _) c q = q
   translateL (InsertColumn n c v) = translateR (DeleteColumn n c v)
-  init (InsertColumn n (f,t) v) db = do
+  init (InsertColumn (Table n k) (f,t) v) db = do
     cn <- getUniqueName db
-    applyEdit db $ Compose (CopyTable n cn) (InsertColumn cn (f,t) v)
+    applyEdit db $ Compose (CopyTable n cn) (InsertColumn (Table cn k) (f,t) v)
     return cn
-  putr db smo@(InsertColumn n (f,_) v) e = do
+  putr db smo@(InsertColumn (Table n _) (f,_) v) e = do 
     c <- get
     lift $ applyEdit db $ rewriteEdit n c e
     case e of
-      InsertInto n' t | n == n' -> return $ InsertInto n (v:t)
+      InsertInto n' fs q | n == n' -> return $ InsertInto n (f:fs) undefined
       UpdateWhere n' p fs | n == n' -> return $ UpdateWhere n p ((f,v):fs)
       ComposeEdits e1 e2 -> do
         (e1, c') <- lift $ runStateT (putl db smo e1) c
         (e2, c'') <- lift $ runStateT (putl db smo e2) c'
         return $ ComposeEdits e1 e2
       _ -> return e
-  putl db smo@(InsertColumn n (f,_) v) e = do
-    c <- get
+  putl db smo@(InsertColumn (Table n _) (f,_) v) e = do 
+    c <- get 
     e' <- case e of
-      InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
+      InsertInto n' fs q | n == n' -> return $ InsertInto n undefined undefined
 --      UpdateWhere n' p fs | n == n' -> do
 --        rn <- getUniqueName
 --        applyEdit db $ undefined -- Insert Into
@@ -163,7 +163,7 @@ instance DBEditLens InsertColumn where
 
 instance DBEditLens DeleteColumn where
   type C DeleteColumn = String
-  translateR s@(DeleteColumn n _ v) c q = case q of
+  translateR s@(DeleteColumn (Table n _) _ v) c q = case q of
     SelectQ p q' -> SelectQ p (translateR s c q')
     ProjectQ jc q' -> ProjectQ jc (translateR s c q')
     RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
@@ -173,15 +173,16 @@ instance DBEditLens DeleteColumn where
     TableQ n' | n == n'  -> JoinQ (TableQ n) (TableQ c) [(qualifiedKey n, qualifiedKey c)] n
               | otherwise -> q
   translateL (DeleteColumn n c v) = translateR (InsertColumn n c v)
-  init (DeleteColumn n (f, t) v) db = do
+  init (DeleteColumn (Table n _) (f, t) v) db = do
     cn <- getUniqueName db
+    
     --createTable db cn [(f, t)]
     --applyEdit db $ "insert into " ++ cn ++ " select rowid, " ++ (getQName f) ++ " from " ++ n
     return cn
-  putr db smo@(DeleteColumn n (f, _) v) e = do
-    c <- get
+  putr db smo@(DeleteColumn (Table n _) (f, _) v) e = do 
+    c <- get 
     e' <- case e of
-      InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
+    -- InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
     -- UpdateWhere n' p fs | n == n' -> return $ UpdateWhere TODO p (delFromAL fs f)
     -- DeleteFrom n' p | n == n' -> return $ DeleteFrom TODO p
       ComposeEdits e1 e2 -> do
@@ -192,7 +193,7 @@ instance DBEditLens DeleteColumn where
       _ -> return e
     lift $ applyEdit db $ rewriteEdit n c e'
     return e'
-  putl db smo@(DeleteColumn n (f, _) v) e = do
+  putl db smo@(DeleteColumn (Table n _) (f, _) v) e = do 
     c <- get
     lift $ applyEdit db $ rewriteEdit n c e
     case e of

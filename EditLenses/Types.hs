@@ -9,11 +9,11 @@ import Data.List.Split
 type SQL = String
 type Database = Connection
   
-data CreateTable = CreateTable Name [(Field, Type)]
-data DeleteTable = DeleteTable Name [(Field, Type)]
+data CreateTable = CreateTable Table [(Field, Type)]
+data DeleteTable = DeleteTable Table [(Field, Type)]
 data RenameTable = RenameTable Name Name
-data InsertColumn = InsertColumn Name (Field, Type) Value
-data DeleteColumn = DeleteColumn Name (Field, Type) Value
+data InsertColumn = InsertColumn Table (Field, Type) Value
+data DeleteColumn = DeleteColumn Table (Field, Type) Value
 data Append = Append Name Name Name Predicate
 data Split = Split Name Name Name Predicate
 data Join = Join Name Name Name JoinCondition
@@ -26,6 +26,10 @@ data SelectInto = SelectInto Name Name Fields Predicate
 
 -- TODO: Change this to contain more information about table like primary key.                
 type Name = String
+
+data Table = Table {getTableName :: Name,
+                    getPrimaryKey :: Fields}
+
 data Field =
     Field Name
   | QField Name Name
@@ -50,11 +54,11 @@ data Binop = Eq | Neq | Lt | Leq | Gt | Geq
 type Predicate = Pred Field
 
 data Pred f =
-    CompareC f Binop Value
+    Nop
+  | CompareC f Binop Value
   | CompareF f Binop f
   | AndP (Pred f) (Pred f)
   | OrP (Pred f) (Pred f)
-  | Nop
   | InC Value Query
   | InF f Query
   | NotInC Value Query
@@ -77,18 +81,19 @@ type JoinCondition = [(Field, Field)]
 data Edit =
     IdEdit
   -- Make this InsertInto Name Fields Query TODO
-  | InsertInto Name Tuple
+  | InsertInto Name Fields Query
   | DeleteFrom Name Predicate
   | UpdateWhere Name Predicate [(Field, Value)]
   | ComposeEdits Edit Edit
   deriving (Show, Eq)
 
 data Query =
-    SelectQ Predicate Query
-  | ProjectQ [Field] Query
+    SelectQ Predicate Query Name
+  | ProjectQ [Field] Query 
   | RenameQ Field Field Query
   | JoinQ Query Query JoinCondition Name
   | UnionQ Query Query Name
   | TableQ Name
+  | TupleQ Tuple
   deriving (Show, Eq)
   
