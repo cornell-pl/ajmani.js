@@ -1,8 +1,10 @@
-
+{-# LANGUAGE OverloadedStrings #-}
 module EditLenses.Types where
 
 import Database.HDBC
 import Database.HDBC.PostgreSQL
+import Data.String
+import Data.List.Split
 
 type SQL = String
 type Database = Connection
@@ -27,7 +29,13 @@ data Field =
     Field Name
   | QField Name Name
   deriving (Show, Eq)
-  
+
+instance IsString Field where
+    fromString str = case splitOn "." str of
+                        [f]   -> Field f
+                        [t,f] -> QField t f
+                        _     -> error "Illegal use of field"
+
 type Type = String
 type Value = String
 
