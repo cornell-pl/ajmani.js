@@ -131,8 +131,8 @@ Consider the partition lens in Hofmann et al. If we were to enrich the update la
     deleteMinL \cdot_{(X \oplus Y)^*} l &\defeq let~n = findMinR(l)~in~remove~n~l \\
     deleteMinL \cdot (l, c) &\defeq let~n = findMinL(l)~in~(remove~n~l, remove~n~c) \\
     deleteMinR \cdot (l, c) &\defeq let~n = findMinR(l)~in~(remove~n~l, remove~n~c) \\
-    left(deleteMin) \cdot_{X^* \otimes Y^*} ((l, l'), c) &\defeq let~n = findMin(l)~in~(remove~n~l, l')\\
-    right(deleteMin) \cdot_{X^* \otimes Y^*} ((l, l'), c) &\defeq let~n = findMin(l)~in~(l, remove~n~l') \\
+    left(deleteMin) \cdot_{X^* \otimes Y^*} (l, l') &\defeq let~n = findMin(l)~in~(remove~n~l, l')\\
+    right(deleteMin) \cdot_{X^* \otimes Y^*} (l, l') &\defeq let~n = findMin(l)~in~(l, remove~n~l') \\
     left(deleteMin) \cdot ((l, l'), c) &\defeq let~n = findMin(l)~in~((remove~n~l, l'), removeL~n~c) \\
     right(deleteMin) \cdot ((l, l'), c) &\defeq let~n = findMin(l)~in~((l, remove~n~l'), removeR~n~c) \\
     ~\\
@@ -141,8 +141,6 @@ Consider the partition lens in Hofmann et al. If we were to enrich the update la
     putl~(left(deleteMin)) &= deleteMinL \\
     putl~(right(deleteMin)) &= deleteMinR \\
   \end{align*}
-
-
 
 \section{Converting an M-Edit lens into a pair of (asymmetric) M-Edit lenses}
 In the setting of evolution/migration, only one of the two sources (in addition to the complement) is materialized. In such a scenario, it may be efficient to combine the materialized source with the complement to create a 'super-structure', and use lenses to separately translate between this structure and both sources. 
