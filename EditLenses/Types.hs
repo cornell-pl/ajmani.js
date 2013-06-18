@@ -24,6 +24,7 @@ data Compose a b = Compose a b
 data CopyTable = CopyTable Name Name
 data SelectInto = SelectInto Name Name Fields Predicate
 
+-- TODO: Change this to contain more information about table like primary key.                
 type Name = String
 data Field =
     Field Name
@@ -36,6 +37,7 @@ instance IsString Field where
                         [t,f] -> QField t f
                         _     -> error "Illegal use of field"
 
+                                 
 type Type = String
 type Value = String
 

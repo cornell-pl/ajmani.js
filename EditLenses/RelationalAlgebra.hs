@@ -10,123 +10,21 @@ import EditLenses.Types
 import EditLenses.Utils
 import EditLenses.Translator
 
-class SMO smo where
+class DBEditLens smo where
   type C smo :: *
-  translateQuery :: smo -> C smo -> Query -> Query
-
-instance (SMO a, SMO b) => SMO (Compose a b) where
-  type C (Compose a b) = (C a, C b)
-  translateQuery (Compose a b) (c1, c2) q =
-    translateQuery b c2 (translateQuery a c1 q)
-
-instance SMO CreateTable where
-  type C CreateTable = String
-  translateQuery _ _ q = q
-
-instance SMO DeleteTable where
-  type C DeleteTable = String
-  translateQuery s@(DeleteTable n _) c q = case q of
-    SelectQ p q' -> SelectQ p (translateQuery s c q')
-    ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
-    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
-    JoinQ q1 q2 jc n' -> JoinQ (translateQuery s c q1) (translateQuery s c q2) jc n'
-    UnionQ q1 q2 n' -> UnionQ (translateQuery s c q1) (translateQuery s c q2) n'
-    TableQ n' | n == n'   -> TableQ c
-              | otherwise -> q
-
-instance SMO RenameTable where
-  type C RenameTable = ()
-  translateQuery s@(RenameTable n1 n2) c q = case q of
-    SelectQ p q' -> SelectQ (rewritePredicate n1 n2 p) (translateQuery s c q')
-    ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
-    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
-    JoinQ q1 q2 jc n' -> JoinQ (translateQuery s c q1) (translateQuery s c q2) (rewriteJC n1 n2 jc) n'
-    UnionQ q1 q2 n' -> UnionQ (translateQuery s c q1) (translateQuery s c q2) n'
-    TableQ n' | n1 == n'  -> TableQ n2
-              | otherwise -> q
-
-instance SMO InsertColumn where
-  type C InsertColumn = String
-  translateQuery (InsertColumn _ _ _) c q = q
-
-instance SMO DeleteColumn where
-  type C DeleteColumn = String
-  translateQuery s@(DeleteColumn n _ v) c q = case q of
-    SelectQ p q' -> SelectQ p (translateQuery s c q')
-    ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
-    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
-    JoinQ q1 q2 jc n' -> JoinQ (translateQuery s c q1) (translateQuery s c q2) jc n'
-    UnionQ q1 q2 n' -> UnionQ (translateQuery s c q1) (translateQuery s c q2) n'
-    -- Assumes that the complement is up-to-date. Otherwise, an outerjoin would be needed.
-    TableQ n' | n == n'  -> JoinQ (TableQ n) (TableQ c) [(qualifiedKey n, qualifiedKey c)] n
-              | otherwise -> q
-
-instance SMO Append where
-  type C Append = (String, String)
-  translateQuery s@(Append n1 n2 n _) c@(c1,c2) q = case q of
-    SelectQ p q' -> SelectQ p (translateQuery s c q')
-    ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
-    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
-    JoinQ q1 q2 jc n' -> JoinQ (translateQuery s c q1) (translateQuery s c q2) jc n'
-    UnionQ q1 q2 n' -> UnionQ (translateQuery s c q1) (translateQuery s c q2) n'
-    -- Assumes that the complement is up-to-date. Otherwise, need to use append predicate.
-    TableQ n' | n1 == n'  -> TableQ c1
-                             -- RenameQ fkey key $ RenameQ key (Field "foo") $
-                             --  JoinQ (TableQ n) (TableQ c1) [(qualifiedKey n1, qualifiedKey c1)] n1
-              | n2 == n'  -> TableQ c2
-                             -- RenameQ fkey key $ RenameQ key (Field "foo") $
-                             --   JoinQ (TableQ n) (TableQ c2) [(qualifiedKey n2, qualifiedKey c2)] n2
-              | otherwise -> q
-
-instance SMO Split where
-  type C Split = (String, String)
-  translateQuery s@(Split n n1 n2 _) c@(c1,c2) q = case q of
-    SelectQ p q' -> SelectQ (fmap trans p) (translateQuery s c q')
-        where trans (Field c) | c == key'  = qualifiedFKey n
-                              | otherwise = (QField n c)
-              trans (QField n' c) | c == key'  = qualifiedFKey n
-                                  | otherwise = (QField n c)
-    ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
-    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
-    JoinQ q1 q2 jc n' -> JoinQ (translateQuery s c q1) (translateQuery s c q2) jc n'
-    UnionQ q1 q2 n' -> UnionQ (translateQuery s c q1) (translateQuery s c q2) n'
-    TableQ n' | n == n'   -> UnionQ (TableQ n1) (TableQ n2) n
-                             -- RenameQ fkey key $ UnionQ
-                             --   (JoinQ (TableQ n1) (RenameQ key fkey (TableQ c1)) [(qualifiedKey n1, qualifiedKey c1)] n1)
-                             --   (JoinQ (TableQ n2) (RenameQ key fkey (TableQ c2)) [(qualifiedKey n2, qualifiedKey c2)] n2) n
-              | otherwise -> q
-
-instance SMO Join where
-  type C Join = (String, String)
-  -- For Join, complements are the entire tables)
-  translateQuery s@(Join n1 n2 n jc) c@(c1, c2) q = case q of
-    SelectQ p q' -> SelectQ p (translateQuery s c q')
-    ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
-    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
-    JoinQ q1 q2 jc n' -> JoinQ (translateQuery s c q1) (translateQuery s c q2) jc n'
-    UnionQ q1 q2 n' -> UnionQ (translateQuery s c q1) (translateQuery s c q2) n'
-    TableQ n' | n1 == n'  -> TableQ c1
-              | n2 == n'  -> TableQ c2
-              | otherwise -> q
-
-instance SMO Decompose where
-  type C Decompose = (String, String)
-  translateQuery s@(Decompose n n1 n2 jc) c@(c1, c2) q = case q of
-    SelectQ p q' -> SelectQ p (translateQuery s c q')
-    ProjectQ jc q' -> ProjectQ jc (translateQuery s c q')
-    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateQuery s c q')
-    JoinQ q1 q2 jc n' -> JoinQ (translateQuery s c q1) (translateQuery s c q2) jc n'
-    UnionQ q1 q2 n' -> UnionQ (translateQuery s c q1) (translateQuery s c q2) n'
-    TableQ n' | n == n'   -> JoinQ (TableQ c1) (TableQ c2) jc n
-              | otherwise -> q
-
-class (SMO smo) => DBEditLens smo where
   init :: smo -> Database -> IO (C smo)
   putr :: Database -> smo -> Edit -> StateT (C smo) IO Edit
   putl :: Database -> smo -> Edit -> StateT (C smo) IO Edit
+  translateR :: smo -> C smo -> Query -> Query
+  translateL :: smo -> C smo -> Query -> Query
   migrate :: smo -> (C smo) -> Database -> IO ()
-  
+
 instance (DBEditLens a, DBEditLens b) => DBEditLens (Compose a b) where
+  type C (Compose a b) = (C a, C b)
+  translateR (Compose a b) (c1, c2) q =
+    translateR b c2 (translateR a c1 q)
+  translateL (Compose a b) (c1, c2) q =
+    translateL a c1 (translateL b c2 q)
   init (Compose a b) db = do
     c1 <- init a db
     c2 <- init b db
@@ -143,8 +41,12 @@ instance (DBEditLens a, DBEditLens b) => DBEditLens (Compose a b) where
     (e'', c1') <- lift $ runStateT (putl db a e') c1
     put (c1', c2')
     return e''
+  migrate = undefined
 
 instance DBEditLens CreateTable where
+  type C CreateTable = String
+  translateR _ _ q = q
+  translateL (CreateTable n f) = translateR (DeleteTable n f)
   -- Complement table (name) is the same as the source table (name)
   init e@(CreateTable n fs) db = applyEdit db e >> return n
   putr _ _ e = return e
@@ -158,8 +60,19 @@ instance DBEditLens CreateTable where
       (e2, c'') <- lift $ runStateT (putl db smo e2) c'
       return $ ComposeEdits e1 e2
     _ -> return e
-    
+  migrate = undefined
+
 instance DBEditLens DeleteTable where
+  type C DeleteTable = String
+  translateR s@(DeleteTable n _) c q = case q of
+    SelectQ p q' -> SelectQ p (translateR s c q')
+    ProjectQ jc q' -> ProjectQ jc (translateR s c q')
+    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
+    JoinQ q1 q2 jc n' -> JoinQ (translateR s c q1) (translateR s c q2) jc n'
+    UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
+    TableQ n' | n == n'   -> TableQ c
+              | otherwise -> q
+  translateL (DeleteTable n f) = translateR (CreateTable n f)
   init (DeleteTable n _) _ = return n
   putr db smo@(DeleteTable n _) e = case e of
     InsertInto n' t | n == n' -> return IdEdit
@@ -172,8 +85,19 @@ instance DBEditLens DeleteTable where
       return $ ComposeEdits e1 e2
     _ -> return e
   putl _ _ e = return e
-  
+  migrate = undefined
+
 instance DBEditLens RenameTable where
+  type C RenameTable = ()
+  translateR s@(RenameTable n1 n2) c q = case q of
+    SelectQ p q' -> SelectQ (rewritePredicate n1 n2 p) (translateR s c q')
+    ProjectQ jc q' -> ProjectQ jc (translateR s c q')
+    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
+    JoinQ q1 q2 jc n' -> JoinQ (translateR s c q1) (translateR s c q2) (rewriteJC n1 n2 jc) n'
+    UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
+    TableQ n' | n1 == n'  -> TableQ n2
+              | otherwise -> q
+  translateL s@(RenameTable n1 n2) = translateR (RenameTable n2 n1)
   init _ _ = return ()
   putr db smo@(RenameTable n1 n2) e = case e of
     InsertInto n t | n == n1 -> return $ InsertInto n2 t
@@ -195,15 +119,19 @@ instance DBEditLens RenameTable where
       (e2, c'') <- lift $ runStateT (putl db smo e2) c'
       return $ ComposeEdits e1 e2
     _ -> return e
+  migrate = undefined
 
 -- NOTE: ASSUMES THAT INSERTED/DELETED COLUMN IS AT THE BEGINNING
 -- THIS IS NOT ROBUST, AND NEEDS TO BE FIXED
 instance DBEditLens InsertColumn where
+  type C InsertColumn = String
+  translateR (InsertColumn _ _ _) c q = q
+  translateL (InsertColumn n c v) = translateR (DeleteColumn n c v)
   init (InsertColumn n (f,t) v) db = do
     cn <- getUniqueName db
     applyEdit db $ Compose (CopyTable n cn) (InsertColumn cn (f,t) v)
     return cn
-  putr db smo@(InsertColumn n (f,_) v) e = do 
+  putr db smo@(InsertColumn n (f,_) v) e = do
     c <- get
     lift $ applyEdit db $ rewriteEdit n c e
     case e of
@@ -214,13 +142,13 @@ instance DBEditLens InsertColumn where
         (e2, c'') <- lift $ runStateT (putl db smo e2) c'
         return $ ComposeEdits e1 e2
       _ -> return e
-  putl db smo@(InsertColumn n (f,_) v) e = do 
-    c <- get 
+  putl db smo@(InsertColumn n (f,_) v) e = do
+    c <- get
     e' <- case e of
       InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
 --      UpdateWhere n' p fs | n == n' -> do
 --        rn <- getUniqueName
---        applyEdit db $ undefined -- Insert Into 
+--        applyEdit db $ undefined -- Insert Into
 --        return $ UpdateWhere TODO p (delFromAL fs f)
     -- DeleteFrom n' p | n == n' -> return $ DeleteFrom TODO p
       ComposeEdits e1 e2 -> do
@@ -231,15 +159,27 @@ instance DBEditLens InsertColumn where
       _ -> return e
     lift $ applyEdit db $ rewriteEdit n c e'
     return e'
+  migrate = undefined
 
 instance DBEditLens DeleteColumn where
+  type C DeleteColumn = String
+  translateR s@(DeleteColumn n _ v) c q = case q of
+    SelectQ p q' -> SelectQ p (translateR s c q')
+    ProjectQ jc q' -> ProjectQ jc (translateR s c q')
+    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
+    JoinQ q1 q2 jc n' -> JoinQ (translateR s c q1) (translateR s c q2) jc n'
+    UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
+    -- Assumes that the complement is up-to-date. Otherwise, an outerjoin would be needed.
+    TableQ n' | n == n'  -> JoinQ (TableQ n) (TableQ c) [(qualifiedKey n, qualifiedKey c)] n
+              | otherwise -> q
+  translateL (DeleteColumn n c v) = translateR (InsertColumn n c v)
   init (DeleteColumn n (f, t) v) db = do
     cn <- getUniqueName db
     --createTable db cn [(f, t)]
     --applyEdit db $ "insert into " ++ cn ++ " select rowid, " ++ (getQName f) ++ " from " ++ n
     return cn
-  putr db smo@(DeleteColumn n (f, _) v) e = do 
-    c <- get 
+  putr db smo@(DeleteColumn n (f, _) v) e = do
+    c <- get
     e' <- case e of
       InsertInto n' t | n == n' -> return $ InsertInto n (tail t)
     -- UpdateWhere n' p fs | n == n' -> return $ UpdateWhere TODO p (delFromAL fs f)
@@ -252,7 +192,7 @@ instance DBEditLens DeleteColumn where
       _ -> return e
     lift $ applyEdit db $ rewriteEdit n c e'
     return e'
-  putl db smo@(DeleteColumn n (f, _) v) e = do 
+  putl db smo@(DeleteColumn n (f, _) v) e = do
     c <- get
     lift $ applyEdit db $ rewriteEdit n c e
     case e of
@@ -263,6 +203,86 @@ instance DBEditLens DeleteColumn where
         (e2, c'') <- lift $ runStateT (putl db smo e2) c'
         return $ ComposeEdits e1 e2
       _ -> return e
+  migrate = undefined
+
+instance DBEditLens Append where
+  type C Append = (String, String)
+  translateR s@(Append n1 n2 n _) c@(c1,c2) q = case q of
+    SelectQ p q' -> SelectQ p (translateR s c q')
+    ProjectQ jc q' -> ProjectQ jc (translateR s c q')
+    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
+    JoinQ q1 q2 jc n' -> JoinQ (translateR s c q1) (translateR s c q2) jc n'
+    UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
+    -- Assumes that the complement is up-to-date. Otherwise, need to use append predicate.
+    TableQ n' | n1 == n'  -> TableQ c1
+                             -- RenameQ fkey key $ RenameQ key (Field "foo") $
+                             --  JoinQ (TableQ n) (TableQ c1) [(qualifiedKey n1, qualifiedKey c1)] n1
+              | n2 == n'  -> TableQ c2
+                             -- RenameQ fkey key $ RenameQ key (Field "foo") $
+                             --   JoinQ (TableQ n) (TableQ c2) [(qualifiedKey n2, qualifiedKey c2)] n2
+              | otherwise -> q
+  translateL (Append n1 n2 n p) = translateR (Split n1 n2 n p)
+  init = undefined
+  putr = undefined
+  putl = undefined
+  migrate = undefined
+
+instance DBEditLens Split where
+  type C Split = (String, String)
+  translateR s@(Split n n1 n2 _) c@(c1,c2) q = case q of
+    SelectQ p q' -> SelectQ (fmap trans p) (translateR s c q')
+        where trans (Field c) | c == key'  = qualifiedFKey n
+                              | otherwise = (QField n c)
+              trans (QField n' c) | c == key'  = qualifiedFKey n
+                                  | otherwise = (QField n c)
+    ProjectQ jc q' -> ProjectQ jc (translateR s c q')
+    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
+    JoinQ q1 q2 jc n' -> JoinQ (translateR s c q1) (translateR s c q2) jc n'
+    UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
+    TableQ n' | n == n'   -> UnionQ (TableQ n1) (TableQ n2) n
+                             -- RenameQ fkey key $ UnionQ
+                             --   (JoinQ (TableQ n1) (RenameQ key fkey (TableQ c1)) [(qualifiedKey n1, qualifiedKey c1)] n1)
+                             --   (JoinQ (TableQ n2) (RenameQ key fkey (TableQ c2)) [(qualifiedKey n2, qualifiedKey c2)] n2) n
+              | otherwise -> q
+  translateL (Split n1 n2 n p) = translateR (Append n1 n2 n p)
+  init = undefined
+  putr = undefined
+  putl = undefined
+  migrate = undefined
+
+instance DBEditLens Join where
+  type C Join = (String, String)
+  -- For Join, complements are the entire tables)
+  translateR s@(Join n1 n2 n jc) c@(c1, c2) q = case q of
+    SelectQ p q' -> SelectQ p (translateR s c q')
+    ProjectQ jc q' -> ProjectQ jc (translateR s c q')
+    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
+    JoinQ q1 q2 jc n' -> JoinQ (translateR s c q1) (translateR s c q2) jc n'
+    UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
+    TableQ n' | n1 == n'  -> TableQ c1
+              | n2 == n'  -> TableQ c2
+              | otherwise -> q
+  translateL (Join n1 n2 n jc) = translateR (Decompose n1 n2 n jc)
+  init = undefined
+  putr = undefined
+  putl = undefined
+  migrate = undefined
+
+instance DBEditLens Decompose where
+  type C Decompose = (String, String)
+  translateR s@(Decompose n n1 n2 jc) c@(c1, c2) q = case q of
+    SelectQ p q' -> SelectQ p (translateR s c q')
+    ProjectQ jc q' -> ProjectQ jc (translateR s c q')
+    RenameQ f1 f2 q' -> RenameQ f1 f2 (translateR s c q')
+    JoinQ q1 q2 jc n' -> JoinQ (translateR s c q1) (translateR s c q2) jc n'
+    UnionQ q1 q2 n' -> UnionQ (translateR s c q1) (translateR s c q2) n'
+    TableQ n' | n == n'   -> JoinQ (TableQ c1) (TableQ c2) jc n
+              | otherwise -> q
+  translateL (Decompose n1 n2 n jc) = translateR (Join n1 n2 n jc)
+  init = undefined
+  putr = undefined
+  putl = undefined
+  migrate = undefined
 
 --instance DBEditLens Append where
 --  init (Append n1 n2 n p) db = do
@@ -276,11 +296,11 @@ instance DBEditLens DeleteColumn where
 --  putr db (Append n1 n2 n p) e = do
 --    (c1, c2, k) <- get
 --    case e of
---      InsertInto n' t | n' == n1 -> 
+--      InsertInto n' t | n' == n1 ->
 --        lift $ applyEdit db $ InsertInto c1 (k:t)
 --        put (c1, c2, k+1)
 --        return $ InsertInto n undefined -- (replace key with k)
---      InsertInto n' t | n' == n2 -> 
+--      InsertInto n' t | n' == n2 ->
 --        lift $ applyEdit db $ InsertInto c2 (k:t)
 --        put (c1, c2, k+1)
 --        return $ InsertInto n undefined -- (replace key with k)
@@ -292,12 +312,12 @@ instance DBEditLens DeleteColumn where
 --        return $ DeleteFrom n p
 --      DeleteFrom n' p | n' == n1 -> do
 --        let p1, p2 = splitPredicate p rowid
---        let rs = runQuery db $ Project fkey $ Select c1 p2   
+--        let rs = runQuery db $ Project fkey $ Select c1 p2
 --        lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
 --        return $ DeleteFrom n (AndP p1 (In key rs))
 --      DeleteFrom n' p | n' == n2 -> do
 --        let p1, p2 = splitPredicate p rowid
---        let rs = runQuery db $ Project fkey $ Select c2 p2   
+--        let rs = runQuery db $ Project fkey $ Select c2 p2
 --        lift $ applyEdit db $ DeleteFrom c2 (fmap _ p)
 --        return $ DeleteFrom n (AndP p1 (In key rs))
 --      UpdateWhere n' p fs | n' == n1 (* and key not in fs *) -> do
@@ -310,10 +330,8 @@ instance DBEditLens DeleteColumn where
 --        let rs = runQuery fb $ Project fkey $ select c1 p2
 --        lift $ applyEdit db $ DeleteFrom c1 (fmap _ p)
 --        return $ UpdateWhere n (AndP p1 (In key rs)) fs
---      ComposeEdits e1 e2 -> do 
+--      ComposeEdits e1 e2 -> do
 --        (e1, c') <- lift $ runStateT (putl db smo e1) (c1, c2, k)
 --        (e2, c'') <- lift $ runStateT (putl db smo e2) c'
 --        return $ ComposeEdits e1 e2
 --      _ -> return e
-        
-
