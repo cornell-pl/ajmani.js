@@ -88,12 +88,12 @@ data Edit =
   deriving (Show, Eq)
 
 data Query =
-    SelectQ Predicate Query Name
+    SelectQ Predicate Query
   | ProjectQ [Field] Query 
   | RenameQ Field Field Query
   | JoinQ Query Query JoinCondition Name
   | UnionQ Query Query Name
   | TableQ Name
-  | TupleQ Tuple
+  | TupleQ Tuple Name
   deriving (Show, Eq)
   

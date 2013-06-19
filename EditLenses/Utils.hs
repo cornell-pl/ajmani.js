@@ -3,6 +3,11 @@ module EditLenses.Utils where
 
 import EditLenses.Types
 
+import Database.HDBC
+import Data.Char
+import Control.Monad (liftM)
+import Control.Monad.Random
+
 key' :: Name
 key' = "rowid"
 fkey' :: Name
@@ -43,8 +48,39 @@ replaceQual _ n' (Field fn) = QField n' fn
 replaceQual n n' f@(QField n1 fn) | n == n'   = QField n' fn
                                   | otherwise = f             
 
-getUniqueName :: Database -> IO String
-getUniqueName = undefined
+rndString :: Int -> IO String
+rndString n = do
+  values <- evalRandIO (sequence (replicate n rnd))
+  return (map chr values)
+  where
+    rnd :: (RandomGen g) => Rand g Int
+    rnd = getRandomR (97,122)
+
+getUniqueName :: Database -> IO Name
+getUniqueName c = do
+  ts <- getTables c
+  getRandomName 12 0 ts
+  where getRandomName n count ts | count > 50 = getRandomName (n+1) 0 ts
+                                 | otherwise = do
+                                   v <- rndString n
+                                   if elem v ts then getRandomName n (count+1) ts else return v
+
+getNameQuery :: Query -> Name
+getNameQuery (SelectQ _ q) = getNameQuery q
+getNameQuery (ProjectQ _ q) = getNameQuery q
+getNameQuery (RenameQ _ _ q) = getNameQuery q
+getNameQuery (JoinQ _ _ _ n) = n
+getNameQuery (UnionQ _ _ n) = n
+getNameQuery (TableQ n) = n
+getNameQuery (TupleQ _ n) = n
+
+tuple :: Tuple -> IO Query
+tuple t = liftM (TupleQ t) (rndString 8) 
+
+consQuery :: Value -> Query -> IO Query
+consQuery v q = do 
+  qt <- tuple [v]
+  liftM (JoinQ qt q []) (rndString 8)
 
 rewritePredicate :: Name -> Name -> Predicate -> Predicate
 rewritePredicate n1 n2 = mapPredicate (replaceQual n1 n2) 
@@ -76,13 +112,14 @@ mapQuery fun q = case q of
   JoinQ q1 q2 jc n -> JoinQ (mapQuery fun q1) (mapQuery fun q2) (mapJC fun jc) n 
   UnionQ q1 q2 n -> UnionQ (mapQuery fun q1) (mapQuery fun q2) n  
   TableQ n -> TableQ n
+  TupleQ _ _ -> q
 
 mapJC :: (Field -> Field) -> JoinCondition -> JoinCondition
 mapJC fun = map (\(x,y) -> (fun x, fun y)) 
 
 mapEdit :: (Field -> Field) -> Edit -> Edit
 mapEdit fun e = case e of
-  InsertInto n t -> e
+  InsertInto n fs q -> InsertInto n (map fun fs) (mapQuery fun q)
   DeleteFrom n p -> DeleteFrom n (mapPredicate fun p)
   UpdateWhere n p fvs -> UpdateWhere n (mapPredicate fun p) (map (\(f,v) -> (fun f, v)) fvs) 
   ComposeEdits e1 e2 -> ComposeEdits (mapEdit fun e1) (mapEdit fun e2)

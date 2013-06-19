@@ -12,23 +12,31 @@ class Translate st where
 
 -- Cas use predicate as join condition
 instance Translate Query where
-  translate (SelectQ p q) = unwords ["SELECT * FROM (",translate q,") WHERE (",translate p,")"]
-  translate (ProjectQ f q) = unwords ["SELECT ",intercalate "," (map translate f),"FROM (",translate q,")"]
-  translate (RenameQ f1 f2 q) = unwords ["SELECT",translate f1,"AS",translate f2,"FROM","(",translate q,")"]
-  translate (JoinQ q1 q2 jc n) = unwords ["(SELECT * FROM (",translate q1,") JOIN (",translate q2,") ON",intercalate "AND" (map (\(a,b) -> unwords [translate a,"=",translate b]) jc),") AS", n]
-  translate (UnionQ q1 q2 n) = unwords ["(SELECT * FROM (",translate q1,") UNION SELECT * FROM (",translate q1,")) AS",n]
+  translate (SelectQ p q) = unwords ["(SELECT * FROM ",translate q," WHERE ",translate p,")"]
+  translate (ProjectQ f q) = unwords ["(SELECT ",intercalate "," (map translate f),"FROM ",translate q,")"]
+  translate (RenameQ f1 f2 q) = unwords ["(SELECT",translate f1,"AS",translate f2,"FROM",translate q,")"]
+  translate (JoinQ q1 q2 jc n) = unwords 
+    ["(SELECT * FROM ",
+      translate q1," AS", getNameQuery q1, 
+      ",",translate q2," AS", getNameQuery q2,
+      jctext, ")"] 
+    where jctext = case jc of
+            [] -> ""
+            _ -> unwords ["WHERE ",intercalate "AND" (map (\(a,b) -> unwords [translate a,"=",translate b]) jc)]
+  translate (UnionQ q1 q2 n) = unwords ["((SELECT * FROM (",translate q1,") UNION SELECT * FROM (",translate q1,")) AS",n,")"]
   translate (TableQ n) = n
+  translate (TupleQ t n) = unwords ["(SELECT", intercalate "," (map (\v -> "'" ++ v ++ "'") t),")"] 
   
 instance Translate Edit where
-  translate IdEdit = "0"
-  translate (InsertInto n t) = unwords ["INSERT INTO",n,"VALUES",translate t]
+  translate IdEdit = ";"
+  translate (InsertInto n fs q) = unwords ["INSERT INTO",n,"(",intercalate "," (map getName fs),")", translate q]
   translate (DeleteFrom n p) = unwords ["DELETE FROM",n,"WHERE",translate p]
   translate (UpdateWhere n p fvs) = unwords ["UPDATE",n,"SET",translate assns,"WHERE",translate p]
     where assns = map (\(f,v) -> translate f ++ "=" ++ v) fvs
   translate (ComposeEdits e1 e2) = translate e1 ++ ";" ++ translate e2
 
 instance (Translate f) => (Translate (Pred f)) where
-  translate (CompareC f o c) = unwords ["(",translate f,translate o,c,")"]
+  translate (CompareC f o c) = unwords ["(",translate f,translate o,"'" ++ c ++ "'",")"]
   translate (CompareF f1 o f2) = unwords ["(",translate f1,translate o,translate f2,")"]
   translate (AndP p1 p2) = unwords ["(",translate p1,"AND",translate p2,")"]
   translate (OrP p1 p2) = unwords ["(",translate p1,"OR",translate p2,")"]
@@ -64,7 +72,7 @@ instance Translate RenameTable where
   translate (RenameTable from to) = unwords ["ALTER TABLE",from,"RENAME TO",to]
 
 instance Translate InsertColumn where
-  translate (InsertColumn (Table n _) (f,t) v) = unwords ["ALTER TABLE",n,"ADD COLUMN",translate $ unQualifyField f,v,"NOT NULL DEFAULT(",v,")"]
+  translate (InsertColumn (Table n _) (f,t) v) = unwords ["ALTER TABLE",n,"ADD COLUMN",getName f,t,"NOT NULL DEFAULT(","'" ++ v ++ "'",")"]
 
 instance Translate DeleteColumn where
   translate (DeleteColumn (Table n _) (f,_) v) = unwords ["ALTER TABLE",n,"DROP COLUMN",translate $ unQualifyField f]
