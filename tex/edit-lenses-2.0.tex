@@ -1,7 +1,9 @@
 \documentclass[a4paper,10pt]{article}
 \usepackage[utf8]{inputenc}
+\usepackage{fullpage}
 \usepackage{amsmath}
 \usepackage{amsthm}
+\usepackage{amssymb}
 \usepackage{color}
 \usepackage{mathpartir}
 
@@ -158,5 +160,67 @@ In the setting of evolution/migration, only one of the two sources (in addition 
 This may not be viable in alternative settings, particularly in distributed settings, where both sources need to materialized. Alternatively, there may be security concerns that don't allow all the data to be shared.
 
 There seems to be an obvious way to do this for schema evolution in databases. There may not be general way to do this for an arbitrary M-Edit lens.
+
+\section{Comparing edit lenses and m-edit lenses}
+
+\subsection{$term_X$}
+
+\begin{tabular}{ll}
+  \begin{minipage}{0.5\linewidth}
+    $\begin{aligned}
+      term_X &\in X \leftrightarrow \Unit \\
+      C &= \Unit \\
+      K &= X \times \Unit \times Unit \\
+      putr~(dx, ()) &= (id, ()) \\
+      putl~(id, ()) &= (id, ())
+    \end{aligned}$
+  \end{minipage}
+  \begin{minipage}{0.5\linewidth}
+    $\begin{aligned}
+      term_X &\in X \leftrightarrow \Unit \\
+      C &= \Unit \\
+      K &= X \times Unit \times Unit \\
+      putr~dx &= id \\
+      putl~id &= id 
+    \end{aligned}$
+  \end{minipage}
+\end{tabular}
+
+\section{Tensor product}
+
+\begin{tabular}{ll}
+  \begin{minipage}{0.5\linewidth}
+    \begin{mathpar}
+      \inferrule*
+      {k \in X \leftrightarrow Z \\ l \in Y \leftrightarrow W}
+      {k \otimes l \in X \otimes Y \leftrightarrow Z \otimes W}
+    \end{mathpar}
+    $\begin{array}{lcl}
+      C &=& k.C \times l.C \\
+      init &=& (k.init, l.init) \\
+      K &=& \{ ((x, z), (c_k, c_l), (y,w)) \mid \\
+        && \qquad (x, c_k, y) \in k.K \\ 
+        && ~\wedge~ (z, c_l, w) \in l.K \}  \\
+      \Rrightarrow_g(L(dx), (c_k, c_l)) &=& let~(dz, c_k') = k.\Rrightarrow(dx, c_k) ~in \\
+                                    && (L(dz), (c_k', c_l)) \\
+      \Rrightarrow_g(R(dy, (c_k, c_l)) &=& let~(dw, c_l') = l.\Rrightarrow(dy, c_l) ~in \\
+                                    && (R(dw), (c_k, c_l')) \\
+      \Lleftarrow_g \textnormal{ similarly}
+      \end{array}$
+  \end{minipage}
+  \begin{minipage}{0.5\linewidth}
+    $\begin{array}{lcl}
+      C &=& k.C \times l.C \\
+      init &=& (k.init, l.init) \\
+      K &=& \{ ((x, z), (c_k, c_l), (y,w)) \mid \\
+        && \qquad (x, c_k, y) \in k.K \\ 
+        && ~\wedge~ (z, c_l, w) \in l.K \}  \\
+      putr~L(dx) &=& L(lift_? (l.putr(dx)) \\
+      putr~R(dy) &=& lift_? (r.putr(dy)) \\
+      putl~id &= id 
+    \end{array}$
+  \end{minipage}
+\end{tabular}
+
 
 \end{document}
