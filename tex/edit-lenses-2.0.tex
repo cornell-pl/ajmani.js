@@ -29,7 +29,7 @@ The type of $putr$, $dX \times C \to dY \times C$ can be expressed as the isomor
 
 [NB: We can view data as being $X$-data, $Y$-data, shared data, or alignment data. By $X$-data, we mean data that is present \emph{solely} in $X$ and not in $Y$, and similarly $Y$-data. An example of alignment data is a mapping of indices between two lists. The collection of $X$-indices can be considered $X$-data (and similarly for $Y$), but the mapping itself depends on both. This isn't shared data as it is not data that is present in both $X$ and $Y$ separately. An alternative term for alignment data can be \emph{state}.]
 
-For a symmetric lens, the complement represents the data that is not shared. In an edit lens, there is may be no necessity to capture all this data. For example, if we consider a list-mapping edit lens where the updates are list reorderings, the complement could just be \Unit. 
+For a symmetric lens, the complement represents the data that is not shared. In an edit lens, there may be no necessity to capture all this data. For example, if we consider a list-mapping edit lens where the updates are list reorderings, the complement could just be \Unit. 
 
 Alternatively, let us compare symmetric and edit lenses between $A \times D$ and $A \times E$, where updates include a filter operation. The complement for the symmetric lens would be $D \times E$. 
 The complement for the edit lens needs to be $A \times D \times E$; this is because we need to write the transformation $d(A \times D) \to C \to C$, and doing so requires access to the data in $A$. If the complement were just $D \times E$, an update $filter~on~(A=a)$ cannot be processed , as there is insufficient information to know which elements get filtered.
@@ -65,7 +65,7 @@ Using this, we can lift a lens $l: X \leftrightarrow Y$ as
 
 $lift_C(l) = \langle l.C \times C, lift_C(X \otimes l.C), lift_C(Y \otimes l.C), (init_{l.C}, init_C), \{ (x,(c,c'),y) \mid (x,c,y) \in K ~\wedge~ c' in C \}, l.putr, l.putl \rangle$ 
 
-\subsection{Composing M-edit lenses}
+\subsection{(Bogus) Composing M-edit lenses}
 Given modules $X, Y, Z$, and M-edit lenses $k : X \leftrightarrow Y$ and $l : Y \leftrightarrow Z$, we can define their composition $k;l : X \leftrightarrow Z$ as follows.
 
 $k;l \defeq \langle k.C \times l.C, lift_{l.C}(X \otimes k.C), lift_{k.C}(Z \otimes l.C), (init_{k.C}, init_{l.C}), \\
@@ -90,7 +90,7 @@ $putl~dz \defeq l'.putl (k.putl~dz) \textnormal{ where } l' = lift_{l.C}(k)$
 \end{mathpar}
 
 
-\subsection{Embedding Edit lenses in M-Edit lenses}
+\subsection{(Bogus) Embedding Edit lenses in M-Edit lenses}
 Given an edit lens $l:X \leftrightarrow Y$, we can embed it in an M-edit lens $M(l)$ as follows. 
 
 $M(l) = \langle l.C, X \otimes C, Y \otimes C, init_{l.C}, l.K, id, id \rangle$
@@ -109,6 +109,36 @@ We need to verify the following
        This is by definition.
  \item The laws for $M(l)$ imply the laws for $l$.
        This is also by definition. Rewriting the laws for M-lenses using the definitions of $putl$, $putr$, and the monoid actions for $M(l)$ gives us exactly the edit lens laws for $l$.
+       
+\subsubsection{Bogosity}
+  This embedding is bogus because it is not functorial, i.e. $M(k;l) \not\equiv M(k);M(l)$. \comment{Is this really the case? Looks pretty functorial.} 
+\end{enumerate}
+
+\subsection{Embedding Edit lenses in M-Edit lenses}
+
+Given an edit lens $l:X \leftrightarrow Y$, we can embed it in an M-edit lens $M(l)$ as follows. 
+
+$M(l) = \langle l.C, X \otimes C, Y \otimes C, init_{l.C}, l.K, putr, putl \rangle$
+
+$X \otimes C = \langle |X| \times C, (init_X, init_C), C \to dY \times C, \cdot_{X \otimes C} \rangle$
+
+$Y \otimes C = \langle |Y| \times C, (init_Y, init_C), C \to dX \times C, \cdot_{Y \otimes C} \rangle$
+
+$ putr~dx = \lambda c \to l.\Rrightarrow (dx, c) $
+
+$ putl~dy = \lambda c \to l.\Lleftarrow (dy, c) $
+
+$ f \cdot_{Y \otimes C} (y,c) = (dy \cdot_Y y, c') \textnormal{ where } (dy, c') = f c$
+
+$ f \cdot_{X \otimes C} (x,c) = (dx \cdot_X x, c') \textnormal{ where } (dx, c') = f c$
+
+We need to verify the following
+\begin{enumerate}
+ \item $(putr~dx) \cdot_{Y \otimes C} (y,c) = (y', c')$ iff $(\Rrightarrow (dx, c) = (dy, c')$ and $dy \cdot_Y y = y')$\\
+       This is by definition.
+ \item $M(l)$ is well-behaved if $l$ is well-behaved.
+ \item If $M(l)$ is well-behaved, then $l$ is well-behaved. \comment{Does (1) imply this automatically?}
+       This is also by definition. Rewriting the laws for M-lenses using the definitions of $putl$, $putr$, and the monoid actions for $M(l)$ gives us exactly the edit lens laws for $l$.
 \end{enumerate}
 
 \subsection{Embedding M-Edit lenses in Edit lenses}
@@ -117,7 +147,6 @@ Given an M-edit lens $l:X \leftrightarrow Y$, we can embed it in an M-edit lens 
 $E(l) = \langle (X \times l.C \times Y), (init_X, init_{l.C}, init_Y), putr, putl \rangle $
 
 $putr~(dx, (x,c,y)) = ?$ \comment{Can we do this?}
-
 
 \subsection{Example M-Edit lens}
   \begin{align*}
@@ -222,5 +251,6 @@ There seems to be an obvious way to do this for schema evolution in databases. T
   \end{minipage}
 \end{tabular}
 
+\section{}
 
 \end{document}

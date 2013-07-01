@@ -1,0 +1,62 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage{mathpartir}
+
+\newtheorem{definition}{Definition}
+
+\newcommand{\finish}[1]{#1}
+\newcommand{\comment}[1]{\finish{\textbf{\textcolor{red}{#1}}}}
+\newcommand{\jnf}[1]{\finish{\textbf{\textcolor{blue}{[#1---JNF]}}}}
+\newcommand{\raghu}[1]{\finish{\textbf{\textcolor{blue}{[#1---Raghu]}}}}
+
+\newcommand{\defeq}{\ensuremath{\stackrel{\Delta}{=}}}
+\newcommand{\Unit}{\ensuremath{\mathbf{Unit}}}
+
+%opening
+\title{}
+\author{}
+
+\begin{document}
+
+\maketitle
+
+\section{Category-theoretic Model of lenses}
+\begin{itemize}
+ \item Categories are types equipped with a monoid of updates. Objects of the category are values, and morphisms between objects are updates corresponding to the monoid action. Thus, the pair of a source object and update corresponds to a single morphism.
+ \item Asymmetric Lenses are opfibrations (functors) between categories.
+ \item A correspondence between two categories is specified by its ``l-diagram''. In the simple case (no state), the l-diagram is just $X \to X \cap Y \leftarrow Y$.
+ \item Every l-diagram has a limit, defined the \emph{ideal}. 
+ \item A symmetric I-lens between categories X and Y consists of asymmetric lenses between X and I, and Y and I; where I is the ideal of the l-diagram of X and Y.
+\end{itemize}
+
+
+\section{Ideal Lenses}
+\begin{definition}
+ An ideal lens $l : X \leftrightarrow Y$ consists of 
+ \begin{enumerate}
+  \item an ideal $I$
+  \item Asymmetric lenses $l : I \leftrightarrow X$ and $l' : I \leftrightarrow Y$
+ \end{enumerate}
+
+\end{definition}
+
+\section{I-lenses in a local setting}
+  Thinking of the ideal $I$ as isomorphic to $X \times Y \times C$, where $C$ is the type of lens state, it may be superior to have the ideal materialized, instead of $X$, $Y$, and $C$. 
+
+\section{I-lenses in a distributed setting}
+
+\section{Questions}
+\begin{enumerate}
+ \item Labeled morphisms. $dX \times I \to dI, dI \to dY$ versus $lX \to lI, lI \times I \to lY$.
+ \item Composing opfibrations. Can we have a lifting $(I \to dI) \to (I' \to dI')$.
+ \item The ideal is not something that is intuitive to a lens designer. Instead, the l-diagram can be a more intuitive thing, from which we can perhaps construct the ideal.
+\end{enumerate}
+
+
+
+\end{document}
