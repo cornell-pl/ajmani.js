@@ -46,17 +46,22 @@
     & pA & \rTo_{pf}    & pB  
 \end{diagram}
 \end{displaymath}
-\caption{Opcartesian Lifting}
+\caption{Opcartesian Lifting}    
 \label{fig:opcartesian}
 \end{figure}
 
-\begin{definition}[Opfibration] \label{opfibration}
-  A functor $p : I \to X$ is an opfibration if for all morphisms $u : pA \to T$ in $X$, there is an opcartesian morphism $f : A \to B$ in $I$ such that $f = pu$.
+\begin{definition}[Opfibration] \label{opfibration} 
+  A functor $p : I \to X$ is an opfibration if for all morphisms $u :
+  pA \to T$ in $X$, there is an opcartesian morphism $f : A \to B$ in
+  $I$ such that $f = pu$.
 \end{definition}
 
 \begin{note}[Intuition for opcartesian lifting being minimal]
-  Let $f : X \to Y$ be the opcartesian lifting of $u$. Let $g : X \to Y$ be another morphism such that $pg = u$. Then, $g$ factors through $f$. This can be observed (see Figure \ref{fig:intuition}) as a case of the opcartesian property where $B = C$ and $v = id$.
-  \end{note}
+  Let $f : X \to Y$ be the opcartesian lifting of $u$. Let $g : X \to
+  Y$ be another morphism such that $pg = u$. Then, $g$ factors through
+  $f$. This can be observed (see Figure \ref{fig:intuition}) as a case
+  of the opcartesian property where $B = C$ and $v = id$.
+\end{note}
 
 \begin{figure}[ht]
 \begin{displaymath}
@@ -74,6 +79,32 @@
 \label{fig:intuition}
 \end{figure}
 
+\begin{definition}[Pullback]
+The pullback (see figure \ref{fig:pullback}) of morphisms $f: X \to C$ and $g: Y \to C$ is defined as
+an object $I$ with two morphisms $i_1: I \to X$ and $i_2: I \to Y$
+such that 
+\begin{enumerate}
+\item Diagram commutes i.e. $f . i_1 = g. i_2$
+\item For any other object $Z$ with morphisms $z_1: Z \to X$ and $z_2:
+  Z \to Y$ which makes the diagram commute i.e $f. z_1 = g. z_2$ then
+  there exists a unique $u$ such that $ i_1 . u = z_1$ and $ i_2 . u = z_2$.
+\end{enumerate}
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+  Z  &    &    &  & \\
+      & \rdDashto^u  \rdTo(4,2)^{z_2} \rdTo(2,4)^{z_1}  &  &  \\
+      &    & I               & \rTo^{i_2} & Y \\
+      &    & \dTo_{i_1} &                & \dTo^g  \\
+      &    & X              & \rTo_f     & C
+\end{diagram}
+\end{displaymath}
+\caption{Pullback}
+\label{fig:pullback}
+\end{figure}
+
+
+\end{definition}
 \section{Category-theoretic Model of lenses}
 \begin{itemize}
  \item Categories are types equipped with a monoid of updates. Objects of the category are values, and morphisms between objects are updates corresponding to the monoid action. Thus, the pair of a source object and update corresponds to a single morphism. 
@@ -83,10 +114,9 @@
  \item A symmetric I-lens between categories X and Y consists of asymmetric lenses between X and I, and Y and I; where I is the ideal of the l-diagram of X and Y.
 \end{itemize}
 
-\section{Ideal Lenses}
-
+\section{Prisms}
 \begin{definition}[Categorical]
- An other-lens $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
+ An ideal prism $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
 \end{definition}
 
 \begin{definition} [\comment{TODO Module}]
@@ -94,7 +124,7 @@
 \end{definition}
 
 \begin{definition}[Concrete]
- An other-lens $l$ between modules $I$ and $X$ consists of the following functions
+ An ideal prism $l$ between modules $I$ and $X$ consists of the following functions
  \begin{itemize}
   \item $get_0 : I \to X$
   \item $get_1 : dI \times I \rightharpoonup dX$
@@ -111,18 +141,16 @@
       di \cdot i = i' \\ get_1 (di, i) = dx}
      {dx \cdot x = x'}
      
-  \inferrule*
-    {}
-    {}
  \end{mathpar}
 
 \end{definition}
 
+\section{Ideal Lenses}
 \begin{definition}
  An ideal lens $l : X \leftrightarrow Y$ consists of 
  \begin{enumerate}
   \item an ideal $I$ 
-  \item Two other-lenses $k : I \leftrightarrow X$ and $l : I \leftrightarrow Y$
+  \item Two ideal prisms $k : I \Rightarrow X$ and $l : I \Rightarrow Y$
 \end{enumerate}
 \end{definition}
 
