@@ -2,6 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{fullpage}
 \usepackage{amsmath}
+\usepackage{mathtools}
 \usepackage{amsthm}
 \usepackage{amssymb}
 \usepackage{color}
@@ -53,7 +54,7 @@
 \begin{definition}[Opfibration] \label{opfibration} 
   A functor $p : I \to X$ is an opfibration if for all morphisms $u :
   pA \to T$ in $X$, there is an opcartesian morphism $f : A \to B$ in
-  $I$ such that $f = pu$.
+  $I$ such that $pf = u$.
 \end{definition}
 
 \begin{note}[Intuition for opcartesian lifting being minimal]
@@ -147,20 +148,49 @@ such that
 
 \section{Ideal Lenses}
 \begin{definition}
- An ideal lens $l : X \leftrightarrow Y$ consists of 
+ An ideal lens $l : X \xleftrightarrow{I} Y$ consists of 
  \begin{enumerate}
   \item an ideal $I$ 
   \item Two ideal prisms $k : I \Rightarrow X$ and $l : I \Rightarrow Y$
 \end{enumerate}
 \end{definition}
 
+\section{Composition}
+\begin{definition}
+The composition of two ideal lenses $l_1: X \xleftrightarrow{I_1} Y$
+and $l_2: Y \xleftrightarrow{I_2} Z$ is an ideal lens $l_1;l_2: X
+\xleftrightarrow{I} Z$ where $I$ is the pullback of $I_1$ and $I_2$
+over $Y$.
 
+\comment{Can show $I \Rightarrow I_1$ and $I \Rightarrow I_2$ are
+  opfibrations - Ross}
+
+\comment{Can show $I \Rightarrow X$ and $I \Rightarrow Z$ are
+  opfibrations - Ross}
+
+\end{definition}
 
 
 \section{I-lenses in a local setting}
-  Thinking of the ideal $I$ as isomorphic to $X \times Y \times C$, where $C$ is the type of lens state, it may be superior to have the ideal materialized, instead of $X$, $Y$, and $C$. 
+  Thinking of the ideal $I$ as isomorphic to $X \times Y \times C$,
+  where $C$ is the type of lens state \comment{(mention somewhere what
+    state is)}, it may be superior to have the ideal materialized, instead of $X$, $Y$, and $C$. 
 
 \section{I-lenses in a distributed setting}
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+ dX & \rTo^X & dCY^-  &              &           &            &
+      &             & dX       & \rTo^X  &  X' \\
+      &             & dCY^- & \rTo^C  & dY^-   &            &
+      &             & dC       & \rTo^C & C' \\
+      &             &            &             & dY^-    & \rTo^Y &
+      (dY,dC)    &            &  dY       & \rTo^Y & Y' \\
+\end{diagram}
+\end{displaymath}
+\caption{General lens setting}
+\label{fig:distributed}
+\end{figure}
 
 \section{Questions}
 \begin{enumerate}
