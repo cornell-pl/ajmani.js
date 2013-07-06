@@ -169,6 +169,29 @@ such that
  \item The ideal is not something that is intuitive to a lens designer. Instead, the l-diagram can be a more intuitive thing, from which we can perhaps construct the ideal.
 \end{enumerate}
 
+\section{Embedding Edit Lenses}
+Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, Ideal lens consists of
+\begin{enumerate}
+\item $I = K$
+\item For a consistent tuple $(x,dx)$ such that $dx.x=x'$ there
+  exist a morphism $f_{dX}: x \to x'$ in X. 
+\item For a consistent tuple $((x,c,y),(dx,dc,dy))$ such
+  that $(dx.x,dc.c,dy.y)=(x',c',y')$ there exist a morphism $f_{dI}:
+  (x,c,y) \to (x',c',y')$ in I.
+\item Ideal prism $I \Rightarrow X$ is defined as 
 
+\begin {itemize}
+\item Functor $F: I \to X$ 
+
+$F~(x,c,y) = x$ 
+
+$F~((x,c,y),(dx,dc,dy))=(x,dx)$ 
+\item Opcartesian lifting $lift: f_{dX} \times I \to dI$ 
+
+$lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~(f_{dx},(c,(\lambda
+  \_ \to c')),(y,dy))$
+\end{itemize}
+\item Similarly an ideal prism for $I \Rightarrow Y$ can be defined.
+\end{enumerate}
 
 \end{document}
