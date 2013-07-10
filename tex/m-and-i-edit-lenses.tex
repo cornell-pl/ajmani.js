@@ -162,11 +162,17 @@ and $l_2: Y \xleftrightarrow{I_2} Z$ is an ideal lens $l_1;l_2: X
 \xleftrightarrow{I} Z$ where $I$ is the pullback of $I_1$ and $I_2$
 over $Y$.
 
-\comment{Can show $I \Rightarrow I_1$ and $I \Rightarrow I_2$ are
-  opfibrations - Ross}
+\begin{itemize}
+ \item $I \Rightarrow I_1$ and $I \Rightarrow I_2$ are
+  opfibrations
+ \item $I \Rightarrow X$ and $I \Rightarrow Z$ are
+  opfibrations 
+\end{itemize}
+  Refer to Ross's yellow book.
 
-\comment{Can show $I \Rightarrow X$ and $I \Rightarrow Z$ are
-  opfibrations - Ross}
+\comment{Can show  - Ross}
+
+\comment{Can show - Ross}
 
 \end{definition}
 
@@ -200,13 +206,13 @@ over $Y$.
 \end{enumerate}
 
 \section{Embedding Edit Lenses}
-Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, Ideal lens consists of
+Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, A semi-ideal lens consists of
 \begin{enumerate}
 \item $I = K$
-\item For a consistent tuple $(x,dx)$ such that $dx.x=x'$ there
-  exist a morphism $f_{dX}: x \to x'$ in X. 
-\item For a consistent tuple $((x,c,y),(dx,dc,dy))$ such
-  that $(dx.x,dc.c,dy.y)=(x',c',y')$ there exist a morphism $f_{dI}:
+\item For a tuple $(x,dx)$ such that $dx \cdot x=x'$ there
+  exist a morphism $f_{dx}: x \to x'$ in X. 
+\item For a tuple $((x,c,y),(dx,dc,dy))$ such
+  that $(dx.x,dc.c,dy.y)=(x',c',y')$ there exist a morphism $f_{(dx,dc,dy)}:
   (x,c,y) \to (x',c',y')$ in I.
 \item Ideal prism $I \Rightarrow X$ is defined as 
 
@@ -216,12 +222,61 @@ Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\L
 $F~(x,c,y) = x$ 
 
 $F~((x,c,y),(dx,dc,dy))=(x,dx)$ 
-\item Opcartesian lifting $lift: f_{dX} \times I \to dI$ 
-
-$lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~(f_{dx},(c,(\lambda
-  \_ \to c')),(y,dy))$
+\item A lifting $lift: hom(X) \times I \to hom(I)$ 
+      
+$lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~((dx \cdot x, c', dy \cdot y), (f_{dx},(\lambda
+  \_ \to c'),dy))$
 \end{itemize}
 \item Similarly an ideal prism for $I \Rightarrow Y$ can be defined.
 \end{enumerate}
+
+\subsection{Making the lifting an opfibration}
+  We redefine the morphisms of the category $I$ such that for every $(x, dx) \in hom(X)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dy,c') = \Rrightarrow (dx,c)$, $dc = \lambda _ \to c'$.
+  Similarly, for every $(y, dy) \in hom(Y)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dx,c') = \Lleftarrow (dy,c)$, $dc = \lambda _ \to c'$. 
+  
+  The following rule is a sufficient (but not necessary) condition for the lifting to be opcartesian
+  
+  \[ \Rrightarrow (dx,c) = (dy, c') \textnormal{ if and only if } \Lleftarrow (dy, c) = (dx, c') \]
+
+  The rule, in addition with the definition of $I$-morphisms, implies that there is a unique lifting of $(dx, x)$ [$(dy, y)$] into $I$ for a particular $(x,c,y)$. This is precisely the result of running $\Rrightarrow$ [$\Lleftarrow$]. As a result, the unique morphism from $(x',c',y')$ to $(x'',c'',y'')$ in figure \ref{fig:opcartesian-embedding} is specified by $\Rrightarrow (dx, c')$. The top diagram commutes as a result of $\Rrightarrow$ and $\Lleftarrow$ being stateful homomorphisms.
+  
+  
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+    &    &                         & C \\
+  I &    & \ruTo^{(dx',dc',dy')}   & \uDashto_{(dx'',dc'',dy'')}  \\
+    & A  & \rTo_{(dx,dc,dy)}       & B \\
+    &    & \dImplies_l             &   \\
+    &    & ~                       & pC  \\
+  X &    & \ruTo^{dx'}             & \uTo_{dx''}  \\    
+    & pA & \rTo_{dx}               & pB  
+\end{diagram}
+\end{displaymath}
+\caption{Opcartesian Embedding}    
+\label{fig:opcartesian-embedding}
+\end{figure}  
+  
+
+\section{Optimizations}
+\begin{enumerate}
+ \item \begin{itemize}
+         \item Can the type of $put$ be $dX \to dI$, where $dX$ and $dI$ are edit monoids (not the set of morphisms)? 
+         \item What laws need to hold for this to be the case?
+         \item Can we construct an algorithm that enriches $dX$ and $dI$ to satisfy the requisite laws?
+       \end{itemize}
+ \item In the scenario where \begin{itemize}
+        \item the ideal is materialized, 
+        \item edit translations are unidirectional $dX \to dI$.
+       \end{itemize} optimizations are simple.
+ \item \begin{itemize}
+        \item Let $l: I \to X$ be an opfibration. We wish to obtain the first element of $X$, where $I$ is materialized. Naively, we translate $I$ to $X$ using the functor, and then get the first element of $X$.
+        \item To do the same without materializing $X$, we need to translate a query $q : X \to V$ that gets the first element of $X$ to $q' : I \to V$ such that $q' = q \circ l$.
+        \item Without the luxury of (1) above, composing two functions $dX \times I \to dI$ and $dI \times \hat{I} \to d\hat{I}$ requires $I$ to be materialized.
+        \item Alternatively, if $I$ and $I'$ are equipped with inter-composable query languages, then these functions become ...
+       \end{itemize}
+ 
+\end{enumerate}
+
 
 \end{document}
