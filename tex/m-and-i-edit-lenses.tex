@@ -278,5 +278,45 @@ $lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~((dx \cdot x, c', dy \c
  
 \end{enumerate}
 
+\section{Local Setting}
+We specialize the opcartesian lifting for the local setting to have
+optimized composition. The opcartesian lifting for functor $p: I
+\Rightarrow X$ is denoted by existence of the lifting function $f_X
+\times I \to f_I$ which when written in terms of the labels is $d_x
+\times I \to d_I$. 
+
+Under the special case when the lifting does not require $I$ the
+lifting function reduces to $d_x \to d_I$. We propose that even when
+this is not the case $d_I$ can be enriched to allow the above
+specialized lifting.
+
+\subsection{Model}
+In the local setting when all the views are stored in the form of
+Ideal from which all the necessary views can be derived by using the
+functor.
+
+\subsection{Composition}
+The optimized composition in the local setting only require
+propogating updates up the lens. So for example (see figure
+\ref{fig:db-lenses}) in the composition of lenses $l_1: X \to Y$ and
+$l_2: Y \to Z$, edit $dX$ will be propogated to $dI$ through $dI_1$
+where it is applied to $I$. This does not require propogating the
+updates down to $dY$ or $dZ$ as they are virtual views of $I$ and are
+automatically updated as $I$ is updated through $dI$.
+
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+  &        &     &       & I &        &     &      &    \\
+  &        &     & \ldTo &   & \rdTo  &     &      &    \\ 
+  &        & I_1 &       &   &        & I_2 &       &    \\
+  & \ldTo  &     & \rdTo &   & \ldTo  &     & \rdTo &    \\
+X &        &     &       & Y &        &     &       & X 
+\end{diagram}
+\end{displaymath}
+\caption{DB Lenses}
+\label{fig:db-lenses}
+\end{figure}  
+  
 
 \end{document}
