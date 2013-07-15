@@ -282,17 +282,17 @@ $lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~((dx \cdot x, c', dy \c
 We specialize the opcartesian lifting for the local setting to have
 optimized composition. The opcartesian lifting for functor $p: I
 \Rightarrow X$ is denoted by existence of the lifting function $f_X
-\times I \to f_I$ which when written in terms of the labels is $d_x
+\times I \to f_I$ which when written in terms of the labels is $d_X
 \times I \to d_I$. 
 
 Under the special case when the lifting does not require $I$ the
-lifting function reduces to $d_x \to d_I$. We propose that even when
+lifting function reduces to $d_X \to d_I$. We propose that even when
 this is not the case $d_I$ can be enriched to allow the above
 specialized lifting.
 
 \subsection{Model}
 In the local setting when ideal acts as the centralized store and all
-the views are just functor mapping of the ideal. So an update on any
+the views are just functor mapping on the ideal. So an update on any
 view can be propogated to the ideal of the lens through the above
 lifting. The ideal and hence the associated views can thus be updated.
 
@@ -307,17 +307,8 @@ X & & & & Y      \\
 dX & & & & dY
 \end{diagram}
 \end{displaymath}
-\caption{?}
+\caption{Model}
 \label{fig:db-lens}
-\end{figure}  
-
-\begin{figure}[ht]
-\begin{displaymath}
-\begin{diagram}
-\end{diagram}
-\end{displaymath}
-\caption{?}
-\label{fig:db-edit}
 \end{figure}  
 
 \subsection{Composition}
@@ -337,7 +328,7 @@ where it is applied to $I$.
   &        &     & \ldTo &   & \rdTo  &     &      &    \\ 
   &        & I_1 &       &   &        & I_2 &       &    \\
   & \ldTo  &     & \rdTo &   & \ldTo  &     & \rdTo &    \\
-X &        &     &       & Y &        &     &       & X 
+X &        &     &       & Y &        &     &       & Z
 \end{diagram}
 \end{displaymath}
 \caption{DB Lenses}
