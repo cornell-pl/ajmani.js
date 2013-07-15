@@ -311,7 +311,7 @@ dX & & & & dY
 \label{fig:db-lens}
 \end{figure}  
 
-\subsection{Composition}
+\subsection{Composing Opfibrations}
 The optimized composition in the local setting only require
 propogating updates up the lens. So for example (see figure
 \ref{fig:db-lenses}) in the composition of lenses $l_1: X \to Y$ and
@@ -325,16 +325,53 @@ where it is applied to $I$.
 \begin{displaymath}
 \begin{diagram}
   &        &     &       & I &        &     &      &    \\
-  &        &     & \ldTo &   & \rdTo  &     &      &    \\ 
+  &        &     & \ldTo^{q_1} &   & \rdTo^{q_2}  &     &      &    \\ 
   &        & I_1 &       &   &        & I_2 &       &    \\
-  & \ldTo  &     & \rdTo &   & \ldTo  &     & \rdTo &    \\
+  & \ldTo^{p_1}  &     & \rdTo^{p_2} &   & \ldTo^{p_3}  &     & \rdTo^{p_4} &    \\
 X &        &     &       & Y &        &     &       & Z
 \end{diagram}
 \end{displaymath}
-\caption{DB Lenses}
+\caption{Composing two lenses}
 \label{fig:db-lenses}
 \end{figure}  
   
+\section{Composing Functors}
+The functor gives the function $f_I \to f_x$ which while writing in
+terms of edit transforms to $d_I \times I \to d_X$. Now if we look at
+the previous example of composing two lenses (see figure
+\ref{fig:db-lenses}), given the functors $q: I \to I_2$ and $p: I_2
+\to Z$, we need to construct their composition $s$. We represent
+functor as two functions, one mapping objects and other mapping
+morphisms (or edits in our case). Function for mapping objects ($s_e$)
+is an obvious composition. So we need to constuct function mapping
+edits, $s_e: d_I \times I \to dZ$ from $q_{e}: d_I \times I \to
+d_{I_2}$ and $p_{e}: d_{I_2} \times I_2 \to dZ$. Now the obvious
+implementation of the composition is
+\begin{align*}
+s_e~(d_i,i) =~& let~d_{i_2} = q_{e}~(d_i,i) \\
+                 & let~i_2 = q_{o}~(i) \\
+                 & p_{e}~(d_{i_2},i_2) 
+\end{align*}
 
+The problem with this naive approach is $get$ ($q_{o}$) operation is
+very costly when $i_2$ is very large (for example a database). 
+
+The observation we make is the edit mapping function ($p_{e}$)
+might not require the whole of $i_2$ but only parts of it which can be
+very small as compared to $i_2$ (for example, few records from the
+database). So, to improve upon the existing naive implementation we
+propose an alternative approach of using queries to represent the
+required parts of the object while transforming edits.
+
+\subsection{Queries and Lifting Queries}
+\comment{TODO}
+
+\subsection{Optimizing edit mapping function composition}
+The new type of put function (for functor $p: I \to X$) we propose is
+\begin{align*}
+\forall \phi. (q_{\phi}, V \to d_I) \to ((q_{\phi},q_I), (V,V') \to dX) 
+\end{align*}
+
+\comment{TODO: Show composition can be done easily using lift} 
 \end{document}
 
