@@ -135,26 +135,36 @@ such that
   \item $init : X \to I$
  \end{itemize}
  satisfying the following laws
- \begin{mathpar}
-   \inferrule*
-     {di \cdot i \textnormal{ is defined}}
-     {get_1 (di, i) \textnormal{ is defined}  }
-     
-  \inferrule*
-     {get_0 ~ i = x \\ get_0 ~ i' = x' \\\\
-      di \cdot i = i' \\ get_1 (di, i) = dx}
-     {dx \cdot x = x'}
- \end{mathpar}
  
- \begin{mathpar}
-   \inferrule*
-     {~}
-     {put~id = id}
-     
-   \inferrule*
-   {~}
-   {get_1~(id, \_) = id}
- \end{mathpar}
+%  \begin{mathpar}
+%    \inferrule*
+%      {~}
+%      {get_1~(id, \_) = id}
+%      
+%    \inferrule*
+%      {~}
+%      {Composition}
+%  \end{mathpar}
+% 
+%  
+%  \begin{mathpar}
+%    \inferrule*
+%      {di \cdot i \textnormal{ is defined}}
+%      {get_1 (di, i) \textnormal{ is defined}  }
+%      
+%   \inferrule*
+%      {get_0 ~ i = x \\ get_0 ~ i' = x' \\\\
+%       di \cdot i = i' \\ get_1 (di, i) = dx}
+%      {dx \cdot x = x'}
+%  \end{mathpar}
+%  
+%  \begin{mathpar}
+%    \inferrule*
+%      {~}
+%      {put~id = id}
+%      
+%    
+%  \end{mathpar}
 
 
 \end{definition}
@@ -181,34 +191,9 @@ over $Y$.
  \item $I \Rightarrow X$ and $I \Rightarrow Z$ are
   opfibrations 
 \end{itemize}
-  Refer to Ross's yellow book.
-
 \end{definition}
 
-\section{I-lenses in a distributed setting}
-\begin{figure}[ht]
-\begin{displaymath}
-\begin{diagram}
- dX & \rTo^X & dCY^-  &              &           &            &
-      &             & dX       & \rTo^X  &  X' \\
-      &             & dCY^- & \rTo^C  & dY^-   &            &
-      &             & dC       & \rTo^C & C' \\
-      &             &            &             & dY^-    & \rTo^Y &
-      (dY,dC)    &            &  dY       & \rTo^Y & Y' \\
-\end{diagram}
-\end{displaymath}
-\caption{General lens setting}
-\label{fig:distributed}
-\end{figure}
-
-\section{Questions}
-\begin{enumerate}
- \item Labeled morphisms. $dX \times I \to dI, dI \to dY$ versus $lX \to lI, lI \times I \to lY$.
- \item Composing opfibrations. Can we have a lifting $(I \to dI) \to (I' \to dI')$.
- \item The ideal is not something that is intuitive to a lens designer. Instead, the l-diagram can be a more intuitive thing, from which we can perhaps construct the ideal.
- \item If in the composition of two lenses we take ideal as the pull back of the two ideals. How do we define the edit language for the new ideal.
-\end{enumerate}
-
+\comment{TOCLEAN}
 \section{Embedding Edit Lenses}
 Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, A semi-ideal lens consists of
 \begin{enumerate}
@@ -288,16 +273,15 @@ optimized composition. The opcartesian lifting for functor $p: I
 \times I \to f_I$ which when written in terms of the labels is $d_X
 \times I \to d_I$. 
 
-Under the special case when the lifting does not require $I$ the
-lifting function reduces to $d_X \to d_I$. We propose that even when
-this is not the case $d_I$ can be enriched to allow the above
-specialized lifting.
+In the special case when the lifting function does not depend on $I$,
+it reduces to $d_X \to d_I$. Even when this is not the case, 
+sometimes $d_I$ can be enriched to $d'_I$ to permit us to construct
+a lifting function $d_X to d'_I$.
 
 \subsection{Model}
-In the local setting when ideal acts as the centralized store and all
-the views are just functor mapping on the ideal. So an update on any
-view can be propogated to the ideal of the lens through the above
-lifting. The ideal and hence the associated views can thus be updated.
+In the local setting, the ideal is materialized. So an update on any
+view can be propagated to the ideal of the lens through the above
+lifting.
 
 \begin{figure}[ht]
 \begin{displaymath}
@@ -314,9 +298,10 @@ dX & & & & dY
 \label{fig:db-lens}
 \end{figure}  
 
+\comment{TOCLEAN}
 \subsection{Composing Opfibrations}
-The optimized composition in the local setting only require
-propogating updates up the lens. So for example (see figure
+The optimized composition in the local setting requires
+propagating updates upwards only. So, for example, (see figure
 \ref{fig:db-lenses}) in the composition of lenses $l_1: X \to Y$ and
 $l_2: Y \to Z$, edit $dX$ will be propogated to $dI$ through $dI_1$
 where it is applied to $I$. 
@@ -380,5 +365,28 @@ The new type of put function (for functor $p: I \to X$) we propose is
 \end{align*}
 
 \comment{TODO: Show composition can be done easily using lift} 
+
+\section{I-lenses in a distributed setting}
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+ dX & \rTo^X & dCY^-  &              &           &            &
+      &             & dX       & \rTo^X  &  X' \\
+      &             & dCY^- & \rTo^C  & dY^-   &            &
+      &             & dC       & \rTo^C & C' \\
+      &             &            &             & dY^-    & \rTo^Y &
+      (dY,dC)    &            &  dY       & \rTo^Y & Y' \\
+\end{diagram}
+\end{displaymath}
+\caption{General lens setting}
+\label{fig:distributed}
+\end{figure}
+
+\section{Questions}
+\begin{enumerate}
+ \item If in the composition of two lenses we take ideal as the pull back of the two ideals. How do we define the edit language for the new ideal.
+\end{enumerate}
+
+
 \end{document}
 
