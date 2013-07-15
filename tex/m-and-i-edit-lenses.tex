@@ -203,6 +203,7 @@ over $Y$.
  \item Labeled morphisms. $dX \times I \to dI, dI \to dY$ versus $lX \to lI, lI \times I \to lY$.
  \item Composing opfibrations. Can we have a lifting $(I \to dI) \to (I' \to dI')$.
  \item The ideal is not something that is intuitive to a lens designer. Instead, the l-diagram can be a more intuitive thing, from which we can perhaps construct the ideal.
+ \item If in the composition of two lenses we take ideal as the pull back of the two ideals. How do we define the edit language for the new ideal.
 \end{enumerate}
 
 \section{Embedding Edit Lenses}
@@ -256,7 +257,6 @@ $lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~((dx \cdot x, c', dy \c
 \caption{Opcartesian Embedding}    
 \label{fig:opcartesian-embedding}
 \end{figure}  
-  
 
 \section{Optimizations}
 \begin{enumerate}
@@ -291,18 +291,44 @@ this is not the case $d_I$ can be enriched to allow the above
 specialized lifting.
 
 \subsection{Model}
-In the local setting when all the views are stored in the form of
-Ideal from which all the necessary views can be derived by using the
-functor.
+In the local setting when ideal acts as the centralized store and all
+the views are just functor mapping of the ideal. So an update on any
+view can be propogated to the ideal of the lens through the above
+lifting. The ideal and hence the associated views can thus be updated.
+
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+  &       & I &   &  \\
+  & \ldTo & & \rdTo & \\
+X & & & & Y      \\
+  &       & dI  & & \\
+  & \ruTo & & \luTo \\
+dX & & & & dY
+\end{diagram}
+\end{displaymath}
+\caption{?}
+\label{fig:db-lens}
+\end{figure}  
+
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+\end{diagram}
+\end{displaymath}
+\caption{?}
+\label{fig:db-edit}
+\end{figure}  
 
 \subsection{Composition}
 The optimized composition in the local setting only require
 propogating updates up the lens. So for example (see figure
 \ref{fig:db-lenses}) in the composition of lenses $l_1: X \to Y$ and
 $l_2: Y \to Z$, edit $dX$ will be propogated to $dI$ through $dI_1$
-where it is applied to $I$. This does not require propogating the
-updates down to $dY$ or $dZ$ as they are virtual views of $I$ and are
-automatically updated as $I$ is updated through $dI$.
+where it is applied to $I$. 
+%% This does not require propogating the
+%% updates down to $dY$ or $dZ$ as they are virtual views of $I$ and are
+%% automatically updated as $I$ is updated through $dI$.
 
 \begin{figure}[ht]
 \begin{displaymath}
@@ -320,3 +346,4 @@ X &        &     &       & Y &        &     &       & X
   
 
 \end{document}
+
