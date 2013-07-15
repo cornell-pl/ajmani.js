@@ -115,9 +115,9 @@ such that
  \item A symmetric I-lens between categories X and Y consists of asymmetric lenses between X and I, and Y and I; where I is the ideal of the l-diagram of X and Y.
 \end{itemize}
 
-\section{Prisms}
+\section{C-lens}
 \begin{definition}[Categorical]
- An ideal prism $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
+ An c-lens $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
 \end{definition}
 
 \begin{definition} [\comment{TODO Module}]
@@ -125,7 +125,7 @@ such that
 \end{definition}
 
 \begin{definition}[Concrete]
- An ideal prism $l$ between modules $I$ and $X$ consists of the following functions
+ An c-lens $l$ between modules $I$ and $X$ consists of the following functions
  \begin{itemize}
   \item $get_0 : I \to X$
   \item $get_1 : dI \times I \rightharpoonup dX$
@@ -151,7 +151,7 @@ such that
  An ideal lens $l : X \xleftrightarrow{I} Y$ consists of 
  \begin{enumerate}
   \item an ideal $I$ 
-  \item Two ideal prisms $k : I \Rightarrow X$ and $l : I \Rightarrow Y$
+  \item Two c-lenses $k : I \Rightarrow X$ and $l : I \Rightarrow Y$
 \end{enumerate}
 \end{definition}
 
@@ -215,7 +215,7 @@ Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\L
 \item For a tuple $((x,c,y),(dx,dc,dy))$ such
   that $(dx.x,dc.c,dy.y)=(x',c',y')$ there exist a morphism $f_{(dx,dc,dy)}:
   (x,c,y) \to (x',c',y')$ in I.
-\item Ideal prism $I \Rightarrow X$ is defined as 
+\item Ideal c-lens $I \Rightarrow X$ is defined as 
 
 \begin {itemize}
 \item Functor $F: I \to X$ 
@@ -228,7 +228,7 @@ $F~((x,c,y),(dx,dc,dy))=(x,dx)$
 $lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~((dx \cdot x, c', dy \cdot y), (f_{dx},(\lambda
   \_ \to c'),dy))$
 \end{itemize}
-\item Similarly an ideal prism for $I \Rightarrow Y$ can be defined.
+\item Similarly a c-lens for $I \Rightarrow Y$ can be defined.
 \end{enumerate}
 
 \subsection{Making the lifting an opfibration}
