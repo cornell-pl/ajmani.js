@@ -388,8 +388,33 @@ Another observation we make is that the edit $d_{i_2}$ might be quite large, as
 the values of $I$ might be embedded in $d_{i_2}$. In order to limit the complexity
 of edits, we permit the presence of queries in edits.
 
-\subsection{Queries and Lifting Queries}
-\comment{TODO}
+\subsection{Queries}
+\begin{definition}[Q-Module] A Q-Module $I$ consists of $(I_m,Q_I,\rhd_{I},V)$ with
+\begin{itemize}
+\item $I_m$ is a module
+\item $Q_i$ is a monoid of queries
+\item $V$ is a module of Views
+\item $\rhd_{I} : |I_m| \times Q_I \to V$ is a function which represents action of applying a query.
+\end{itemize}
+\end{definition} 
+
+\begin{definition}[Lifting Queries]
+Given Q-modules $I$ and $X$, ce-lenses $l : I \Rightarrow X$ and $k : V_I \to V_x$ we can define the Query lifting as follows
+
+Forall $q_X$ $(\in Q_X)$ there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commute. 
+\end{definition}
+
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+|X_m| & \lTo^{l} & |I_m|\\
+\dTo^{q_X } & & \dTo^{q_I} \\
+|V_X| & \lTo^{k} & |V_I| 
+\end{diagram}
+\end{displaymath}
+\caption{Lifting Queries}
+\label{fig:lifting-queries}
+\end{figure}
 
 \subsection{Optimizing edit mapping function composition}
 The new type of put function (for functor $p: I \to X$) we propose is
@@ -398,6 +423,27 @@ The new type of put function (for functor $p: I \to X$) we propose is
 \end{align*}
 
 \comment{TODO: Show composition can be done easily using lift} 
+
+\section{Database Lenses}
+
+\begin{definition}
+\comment{Definition here}
+\end{definition}
+
+
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+I' & & \\
+\dTo^{smo_1} & \rdTo(2,4)^{q_{I'}} & \\
+I & &\\
+\dTo^{smo_2} & \rdTo^{q_I} & \\
+X & \rTo^{q_X} & V
+\end{diagram}
+\end{displaymath}
+\caption{Database Lenses}
+\label{fig:database-lens}
+\end{figure}
 
 \section{I-lenses in a distributed setting}
 \begin{figure}[ht]
