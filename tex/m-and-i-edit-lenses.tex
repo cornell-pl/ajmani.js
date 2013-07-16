@@ -392,14 +392,14 @@ of edits, we permit the presence of queries in edits.
 \begin{definition}[Q-Module] A Q-Module $I$ consists of $(I_m,Q_I,\rhd_{I},V)$ with
 \begin{itemize}
 \item $I_m$ is a module
-\item $Q_i$ is a monoid of queries
+\item $Q_I$ is a monoid of queries
 \item $V$ is a module of Views
-\item $\rhd_{I} : |I_m| \times Q_I \to V$ is a function which represents action of applying a query.
+\item $\rhd_{I} : |I_m| \times Q_I \to |V|$ is a function which represents action of applying a query.
 \end{itemize}
 \end{definition} 
 
 \begin{definition}[Lifting Queries]
-Given Q-modules $I$ and $X$, ce-lenses $l : I \Rightarrow X$ and $k : V_I \to V_x$ we can define the Query lifting as follows
+Given Q-modules $I$ and $X$, ce-lenses $l : I_m \leftrightarrow X_m$ and $k : V_I \leftrightarrow V_x$ we can define the Query lifting as follows
 
 Forall $q_X$ $(\in Q_X)$ there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commute. 
 \end{definition}
