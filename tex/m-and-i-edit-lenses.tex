@@ -122,15 +122,11 @@ such that
  An c-lens $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
 \end{definition}
 
-\begin{definition} [\comment{TODO Module}]
- 
-\end{definition}
-
 \begin{definition}[Concrete]
  An c-lens $l$ between modules $I$ and $X$ consists of the following functions
  \begin{itemize}
   \item $get_0 : I \to X$
-  \item $get_1 : dI \times I \rightharpoonup dX$
+  \item $get_1 : dI \times I \to dX$
   \item $put : dX \to dI$
   \item $init : X \to I$
  \end{itemize}
@@ -187,7 +183,7 @@ over $Y$.
 
 \begin{itemize}
  \item $I \Rightarrow I_1$ and $I \Rightarrow I_2$ are
-  opfibrations
+  opfibrations \comment{Reference to the theorem here}
  \item $I \Rightarrow X$ and $I \Rightarrow Z$ are
   opfibrations 
 \end{itemize}
