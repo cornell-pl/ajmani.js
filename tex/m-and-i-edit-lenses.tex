@@ -130,10 +130,16 @@ such that
  c-lenses form a category \clens, with arbitrary categories as objects and opfibrations as morphisms.
 \end{conj}
 
-
 \begin{definition} [Module]
   A module $X$ is a tuple $\langle |X|, \delta X, \odot_X \rangle$; $|X|$ is a set, $\delta X$ is a monoid, and $\odot_X$ is a partial monoid action of $\delta X$ on $|X|$.
 \end{definition}
+
+\paragraph*{Moddules as Categories.}
+ Every module $X$ gives rise to a category (and thus, an object in $\cat$) as follows. 
+\begin {itemize}
+\item The objects of the category are the elements $|X|$. 
+\item Morphisms in the category are $x \stackrel{dx}{\mapsto} x'$, where $dx \in \delta X$, and $dx \odot x = x'$.
+\end{itemize}
 
 \begin{definition}[Concrete]
  A ce-lens $l$ between modules $I$ and $X$ consists of the following functions
@@ -145,35 +151,28 @@ such that
  \end{itemize}
  satisfying the following laws
  
-%  \begin{mathpar}
+ \begin{mathpar}
+   \inferrule*
+     {~}
+     {get_1~(id, \_) = id}
+     
 %    \inferrule*
+%      {di \odot i \textnormal{ is undefined}}
+%      {get_1 (di, i) \odot (get_0~i) \textnormal{ is undefined}}
+
+   \inferrule*
+     {di \odot i = i'}
+     {get_1 (di, i) \odot (get_0~i) = get_0~i'  }
+     
+   \inferrule*
+     {~}
+     {put~id = id}
+     
+%    \inferrule*[right=Maybe]
 %      {~}
-%      {get_1~(id, \_) = id}
-%      
-%    \inferrule*
-%      {~}
-%      {Composition}
-%  \end{mathpar}
-% 
-%  
-%  \begin{mathpar}
-%    \inferrule*
-%      {di \cdot i \textnormal{ is defined}}
-%      {get_1 (di, i) \textnormal{ is defined}  }
-%      
-%   \inferrule*
-%      {get_0 ~ i = x \\ get_0 ~ i' = x' \\\\
-%       di \cdot i = i' \\ get_1 (di, i) = dx}
-%      {dx \cdot x = x'}
-%  \end{mathpar}
-%  
-%  \begin{mathpar}
-%    \inferrule*
-%      {~}
-%      {put~id = id}
-%      
-%    
-%  \end{mathpar}
+%      {put~dx \odot i = init~(dx \odot (get_0~i))}
+   
+  \end{mathpar}
 
 \end{definition}
 
@@ -190,7 +189,7 @@ such that
     get_0~a     &=& a \\
     get_1~da~\_ &=& da \\
     put~da      &=& da \\
-    init~a      &=& a 
+%     init~a      &=& a 
   \end{array}
 \end{mathpar}
 
@@ -209,30 +208,22 @@ such that
     get_0      &=& k.get_0 \circ l.get_0 \\
     get_1~da~a &=& l.get_1~(k.get_1~da~a)~(k.get_0~a) \\
     put        &=& k.put \circ l.put \\
-    init       &=& k.init \circ l.init 
+%     init       &=& k.init \circ l.init 
   \end{array}
 
 \end{mathpar}
 \end{definition}
 
 \begin{conj}
-  ce-lenses form a category, \celens, with modules as objects and ce-lenses as morphisms.
+  ce-lenses form a category, $\celens$, with modules as objects and ce-lenses as morphisms.
 \end{conj}
-
-Every module $X$ gives rise to a category (and thus, an object in $\cat$) as follows. The objects of the category are the elements $|X|$. Morphisms in the category are $x \stackrel{dx}{\mapsto} x'$, where $dx \in \delta X$, and $dx \odot x = x'$.
-
-\begin{conj}
-  ce-lenses are a subcategory of c-lenses
-\end{conj}
-
-
 
 \section{Ideal Lenses}
 \begin{definition}
  An ideal lens $l : X \xleftrightarrow{I} Y$ consists of 
  \begin{enumerate}
   \item an ideal $I$ 
-  \item Two c-lenses $k : I \Rightarrow X$ and $l : I \Rightarrow Y$
+  \item Two ce-lenses $k : I \leftrightarrow X$ and $l : I \leftrightarrow Y$
 \end{enumerate}
 \end{definition}
 
@@ -240,41 +231,25 @@ Every module $X$ gives rise to a category (and thus, an object in $\cat$) as fol
 \begin{definition}
 The composition of two ideal lenses $l_1: X \xleftrightarrow{I_1} Y$
 and $l_2: Y \xleftrightarrow{I_2} Z$ is an ideal lens $l_1;l_2: X
-\xleftrightarrow{I} Z$ where $I$ is the pullback of $I_1$ and $I_2$
+\leftrightarrow{I} Z$ where $I$ is the pullback of $I_1$ and $I_2$
 over $Y$.
-
-\begin{itemize}
- \item $I \Rightarrow I_1$ and $I \Rightarrow I_2$ are
-  opfibrations \comment{Reference to the theorem here}
- \item $I \Rightarrow X$ and $I \Rightarrow Z$ are
-  opfibrations 
-\end{itemize}
 \end{definition}
-
-\comment{TOCLEAN}
+	
 \section{Embedding Edit Lenses}
-Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, A semi-ideal lens consists of
+Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X'$ and $Y'$ consists of
 \begin{enumerate}
-\item $I = K$
-\item For a tuple $(x,dx)$ such that $dx \cdot x=x'$ there
-  exist a morphism $f_{dx}: x \to x'$ in X. 
-\item For a tuple $((x,c,y),(dx,dc,dy))$ such
-  that $(dx.x,dc.c,dy.y)=(x',c',y')$ there exist a morphism $f_{(dx,dc,dy)}:
-  (x,c,y) \to (x',c',y')$ in I.
-\item Ideal c-lens $I \Rightarrow X$ is defined as 
 
-\begin {itemize}
-\item Functor $F: I \to X$ 
+\item $I = \langle K, C \to (\delta X, C, \delta Y), \odot_I \rangle$ \\
+      $f \odot (x, c, y) = (dx \odot x, c', dy \odot y) \textnormal{ where } (dx, c', dy) = f~c $ \\
+\item Two ce-lenses $k: I \leftrightarrow X$ and $l : I \leftrightarrow Y$. We show the construction of $k$ here; the construction of $l$ is similar.
+  \begin{itemize}
+   \item $k.get_0~(x,c,y) = x$
+   \item $k.get_1~(f, (x,c,y)) = dx \textnormal{ where } (dx, \_, \_) = f~c$
+   \item $k.put~(dx) = \lambda c \to (dx, c', dy) \textnormal{ where } (dy, c') = k.\Rrightarrow(dx, c)$
+  \end{itemize}
+  
+\comment{TODO verify ideal-lens laws}
 
-$F~(x,c,y) = x$ 
-
-$F~((x,c,y),(dx,dc,dy))=(x,dx)$ 
-\item A lifting $lift: hom(X) \times I \to hom(I)$ 
-      
-$lift~(f_{dx},(x,c,y))=let~(dy,c')=\Rrightarrow(dx,c)~in~((dx \cdot x, c', dy \cdot y), (f_{dx},(\lambda
-  \_ \to c'),dy))$
-\end{itemize}
-\item Similarly a c-lens for $I \Rightarrow Y$ can be defined.
 \end{enumerate}
 
 \subsection{Making the lifting an opfibration}
