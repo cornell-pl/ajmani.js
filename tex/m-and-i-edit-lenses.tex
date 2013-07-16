@@ -398,11 +398,13 @@ of edits, we permit the presence of queries in edits.
 \end{itemize}
 \end{definition} 
 
-\begin{definition}[Lifting Queries]
-Given Q-modules $I$ and $X$, ce-lens $l : I_m \leftrightarrow X_m$ and a function $k : |V_I| \rightarrow |V_x|$ we can define the Query lifting as follows
-
-Forall $q_X$ $(\in Q_X)$ there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commute. 
+\begin{definition}[Liftable Queries]
+Given Q-modules $I$ and $X$, ce-lens $l : I_m \leftrightarrow X_m$, we say $Q_X$ can be lifted to $Q_I$ 
+if there exist a function $k : |V_I| \to |V_x|$ such that forall $q_X$ $(\in Q_X)$ there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commute. 
 \end{definition}
+
+If Queries can be lifted then can define the function $k: |V_I|  \to|V_X|$ and lift function $lift_{X \to I}: Q_X \to Q_I$ satisfying the above property. 
+
 
 \begin{figure}[ht]
 \begin{displaymath}
