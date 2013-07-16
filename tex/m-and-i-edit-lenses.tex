@@ -176,6 +176,16 @@ such that
 
 \end{definition}
 
+\begin{note} 
+  A ce-lens differs from a c-lens in two ways. 
+\begin{enumerate}
+ \item The $put$ function of a c-lens guarantees a least update, since the lens is an opfibration. The $put$ function of a ce-lens does not guarantee a least update. 
+ \item The $put$ function of a c-lens between modules corresponds to a function of the type $dX \times I \to dI$. The type of $put$ in a ce-lens implies that the translation of $dX$ to $dI$ can not depend on the value of $I$. A c-lens does not impose this restriction. In cases where the $put$ function does depend on the value of $I$, the edit monoid $dI$ can be enriched such that the $put$ function no longer needs to depend on $I$.
+\end{enumerate}
+These differences imply that neither c-lenses nor ce-lenses are a subclass of the other.
+\end{note}
+
+
 \begin{definition}[Identity ce-lens]
 
 \begin{mathpar}
@@ -252,70 +262,60 @@ Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\L
 
 \end{enumerate}
 
-\subsection{Alternate embedding}
-  We redefine the morphisms of the category $I$ such that for every $(x, dx) \in hom(X)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dy,c') = \Rrightarrow (dx,c)$, $dc = \lambda _ \to c'$.
-  Similarly, for every $(y, dy) \in hom(Y)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dx,c') = \Lleftarrow (dy,c)$, $dc = \lambda _ \to c'$. 
-  
-  The following rule is a sufficient (but not necessary) condition for the lifting to be opcartesian
-  
-  \[ \Rrightarrow (dx,c) = (dy, c') \textnormal{ if and only if } \Lleftarrow (dy, c) = (dx, c') \]
+\subsection{Alternative embedding}
+  \comment{This section proposed an alternative embedding into c-lenses; however, this section doesn't make sense wrt an embedding into ce-lenses, without additional laws for being an opfibration}
+%   We redefine the morphisms of the category $I$ such that for every $(x, dx) \in hom(X)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dy,c') = \Rrightarrow (dx,c)$, $dc = \lambda _ \to c'$.
+%   Similarly, for every $(y, dy) \in hom(Y)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dx,c') = \Lleftarrow (dy,c)$, $dc = \lambda _ \to c'$. 
+%   
+%   The following rule is a sufficient (but not necessary) condition for the lifting to be opcartesian
+%   
+%   \[ \Rrightarrow (dx,c) = (dy, c') \textnormal{ if and only if } \Lleftarrow (dy, c) = (dx, c') \]
+% 
+%   The rule, in addition with the definition of $I$-morphisms, implies that there is a unique lifting of $(dx, x)$ [$(dy, y)$] into $I$ for a particular $(x,c,y)$. This is precisely the result of running $\Rrightarrow$ [$\Lleftarrow$]. As a result, the unique morphism from $(x',c',y')$ to $(x'',c'',y'')$ in figure \ref{fig:opcartesian-embedding} is specified by $\Rrightarrow (dx, c')$. The top diagram commutes as a result of $\Rrightarrow$ and $\Lleftarrow$ being stateful homomorphisms.
+%   
+%   
+% \begin{figure}[ht]
+% \begin{displaymath}
+% \begin{diagram}
+%     &    &                         & C \\
+%   I &    & \ruTo^{(dx',dc',dy')}   & \uDashto_{(dx'',dc'',dy'')}  \\
+%     & A  & \rTo_{(dx,dc,dy)}       & B \\
+%     &    & \dImplies_l             &   \\
+%     &    & ~                       & pC  \\
+%   X &    & \ruTo^{dx'}             & \uTo_{dx''}  \\    
+%     & pA & \rTo_{dx}               & pB  
+% \end{diagram}
+% \end{displaymath}
+% \caption{Opcartesian Embedding}    
+% \label{fig:opcartesian-embedding}
+% \end{figure}  
 
-  The rule, in addition with the definition of $I$-morphisms, implies that there is a unique lifting of $(dx, x)$ [$(dy, y)$] into $I$ for a particular $(x,c,y)$. This is precisely the result of running $\Rrightarrow$ [$\Lleftarrow$]. As a result, the unique morphism from $(x',c',y')$ to $(x'',c'',y'')$ in figure \ref{fig:opcartesian-embedding} is specified by $\Rrightarrow (dx, c')$. The top diagram commutes as a result of $\Rrightarrow$ and $\Lleftarrow$ being stateful homomorphisms.
-  
-  
-\begin{figure}[ht]
-\begin{displaymath}
-\begin{diagram}
-    &    &                         & C \\
-  I &    & \ruTo^{(dx',dc',dy')}   & \uDashto_{(dx'',dc'',dy'')}  \\
-    & A  & \rTo_{(dx,dc,dy)}       & B \\
-    &    & \dImplies_l             &   \\
-    &    & ~                       & pC  \\
-  X &    & \ruTo^{dx'}             & \uTo_{dx''}  \\    
-    & pA & \rTo_{dx}               & pB  
-\end{diagram}
-\end{displaymath}
-\caption{Opcartesian Embedding}    
-\label{fig:opcartesian-embedding}
-\end{figure}  
-
-\section{Optimizations}
-\begin{enumerate}
- \item \begin{itemize}
-         \item Can the type of $put$ be $dX \to dI$, where $dX$ and $dI$ are edit monoids (not the set of morphisms)? 
-         \item What laws need to hold for this to be the case?
-         \item Can we construct an algorithm that enriches $dX$ and $dI$ to satisfy the requisite laws?
-       \end{itemize}
- \item In the scenario where \begin{itemize}
-        \item the ideal is materialized, 
-        \item edit translations are unidirectional $dX \to dI$.
-       \end{itemize} optimizations are simple.
- \item \begin{itemize}
-        \item Let $l: I \to X$ be an opfibration. We wish to obtain the first element of $X$, where $I$ is materialized. Naively, we translate $I$ to $X$ using the functor, and then get the first element of $X$.
-        \item To do the same without materializing $X$, we need to translate a query $q : X \to V$ that gets the first element of $X$ to $q' : I \to V$ such that $q' = q \circ l$.
-        \item Without the luxury of (1) above, composing two functions $dX \times I \to dI$ and $dI \times \hat{I} \to d\hat{I}$ requires $I$ to be materialized.
-        \item Alternatively, if $I$ and $I'$ are equipped with inter-composable query languages, then these functions become ...
-       \end{itemize}
- 
-\end{enumerate}
+% \section{Optimizations}
+% \begin{enumerate}
+%  \item \begin{itemize}
+%          \item Can the type of $put$ be $dX \to dI$, where $dX$ and $dI$ are edit monoids (not the set of morphisms)? 
+%          \item What laws need to hold for this to be the case?
+%          \item Can we construct an algorithm that enriches $dX$ and $dI$ to satisfy the requisite laws?
+%        \end{itemize}
+%  \item In the scenario where \begin{itemize}
+%         \item the ideal is materialized, 
+%         \item edit translations are unidirectional $dX \to dI$.
+%        \end{itemize} optimizations are simple.
+%  \item \begin{itemize}
+%         \item Let $l: I \to X$ be an opfibration. We wish to obtain the first element of $X$, where $I$ is materialized. Naively, we translate $I$ to $X$ using the functor, and then get the first element of $X$.
+%         \item To do the same without materializing $X$, we need to translate a query $q : X \to V$ that gets the first element of $X$ to $q' : I \to V$ such that $q' = q \circ l$.
+%         \item Without the luxury of (1) above, composing two functions $dX \times I \to dI$ and $dI \times \hat{I} \to d\hat{I}$ requires $I$ to be materialized.
+%         \item Alternatively, if $I$ and $I'$ are equipped with inter-composable query languages, then these functions become ...
+%        \end{itemize}
+%  
+% \end{enumerate}
 
 \section{Local Setting}
-We specialize the opcartesian lifting for the local setting to have
-optimized composition. The opcartesian lifting for functor $p: I
-\Rightarrow X$ is denoted by existence of the lifting function $f_X
-\times I \to f_I$ which when written in terms of the labels is $d_X
-\times I \to d_I$. 
+  In the case where all data is centrally located, it can be more efficient to store the ideal instead of storing several related sources of data. This efficiency comes by way of lower redundancy, and more efficient edit translations. In such a setting, it is unnecessary to support mapping edits to the source databases, since the source databases are virtual. 
 
-In the special case when the lifting function does not depend on $I$,
-it reduces to $d_X \to d_I$. Even when this is not the case, 
-sometimes $d_I$ can be enriched to $d'_I$ to permit us to construct
-a lifting function $d_X to d'_I$.
-
-\subsection{Model}
-In the local setting, the ideal is materialized. So an update on any
-view can be propagated to the ideal of the lens through the above
-lifting.
-
+  \paragraph*{Optimized translations of edits.}
+    The only requirement is to support mapping edits from source databases to the ideal (i.e. $put$), and the definition of ce-lenses is designed to optimize the composition of such edit translations. 
+  
 \begin{figure}[ht]
 \begin{displaymath}
 \begin{diagram}
@@ -329,18 +329,13 @@ dX & & & & dY
 \end{displaymath}
 \caption{Model}
 \label{fig:db-lens}
-\end{figure}  
+\end{figure}
 
-\comment{TOCLEAN}
-\subsection{Composing Opfibrations}
-The optimized composition in the local setting requires
-propagating updates upwards only. So, for example, (see figure
-\ref{fig:db-lenses}) in the composition of lenses $l_1: X \to Y$ and
-$l_2: Y \to Z$, edit $dX$ will be propogated to $dI$ through $dI_1$
-where it is applied to $I$. 
-%% This does not require propogating the
-%% updates down to $dY$ or $dZ$ as they are virtual views of $I$ and are
-%% automatically updated as $I$ is updated through $dI$.
+\section{Composing $get$}
+Let us recall the definition of $get_1$ for the composition of two ce-lenses $k : A \leftrightarrow B $ and $l : B \leftrightarrow C$. 
+\[
+(k;l).get_1~(da,a) = l.get_1~(k.get_1~(da,a),b) \textnormal{ where } b = (k.get_0~a)
+\]
 
 \begin{figure}[ht]
 \begin{displaymath}
@@ -355,35 +350,17 @@ X &        &     &       & Y &        &     &       & Z
 \caption{Composing two lenses}
 \label{fig:db-lenses}
 \end{figure}  
-  
-\section{Composing Functors}
-The functor gives the function $f_I \to f_x$ which while writing in
-terms of edit transforms to $d_I \times I \to d_X$. Now if we look at
-the previous example of composing two lenses (see figure
-\ref{fig:db-lenses}), given the functors $q: I \to I_2$ and $p: I_2
-\to Z$, we need to construct their composition $s$. We represent
-functor as two functions, one mapping objects and other mapping
-morphisms (or edits in our case). Function for mapping objects ($s_e$)
-is an obvious composition. So we need to constuct function mapping
-edits, $s_e: d_I \times I \to dZ$ from $q_{e}: d_I \times I \to
-d_{I_2}$ and $p_{e}: d_{I_2} \times I_2 \to d_Z$. Now the obvious
-implementation of the composition is
-\begin{align*}
-s_e~(d_i,i) =~& let~d_{i_2} = q_{e}~(d_i,i) \\
-                 & let~i_2 = q_{o}~(i) \\
-                 & p_{e}~(d_{i_2},i_2) 
-\end{align*}
 
-The problem with this naive approach is $get$ ($q_{o}$) operation is
-very costly when $i_2$ is very large (for example a database). 
+The problem with this naive approach is that $b$ is materialized as an intermediate result, and this may be very large (for example a database). 
 
-The observation we make is the edit mapping function ($p_{e}$)
-might not require the whole of $i_2$ but only parts of it which can be
-very small as compared to $i_2$ (for example, few records from the
+We make the observation that $k.get_1$
+might not require the whole of $b$ but a relatively miniscule
+ part of it (for example, a few records from the
 database). So, to improve upon the existing naive implementation we
 propose an alternative approach of using queries to represent the
-required parts of the object while transforming edits.
+required parts of the object while transforming edits. 
 
+\comment{TOCLEAN}
 Another observation we make is that the edit $d_{i_2}$ might be quite large, as
 the values of $I$ might be embedded in $d_{i_2}$. In order to limit the complexity
 of edits, we permit the presence of queries in edits.
