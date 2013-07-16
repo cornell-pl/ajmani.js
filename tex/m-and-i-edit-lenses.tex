@@ -231,12 +231,12 @@ such that
 \begin{definition}
 The composition of two ideal lenses $l_1: X \xleftrightarrow{I_1} Y$
 and $l_2: Y \xleftrightarrow{I_2} Z$ is an ideal lens $l_1;l_2: X
-\leftrightarrow{I} Z$ where $I$ is the pullback of $I_1$ and $I_2$
+\xleftrightarrow{I} Z$ where $I$ is the pullback of $I_1$ and $I_2$
 over $Y$.
 \end{definition}
 	
 \section{Embedding Edit Lenses}
-Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X'$ and $Y'$ consists of
+Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X$ and $Y$ consists of
 \begin{enumerate}
 
 \item $I = \langle K, C \to (\delta X, C, \delta Y), \odot_I \rangle$ \\
@@ -252,7 +252,7 @@ Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\L
 
 \end{enumerate}
 
-\subsection{Making the lifting an opfibration}
+\subsection{Alternate embedding}
   We redefine the morphisms of the category $I$ such that for every $(x, dx) \in hom(X)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dy,c') = \Rrightarrow (dx,c)$, $dc = \lambda _ \to c'$.
   Similarly, for every $(y, dy) \in hom(Y)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dx,c') = \Lleftarrow (dy,c)$, $dc = \lambda _ \to c'$. 
   
