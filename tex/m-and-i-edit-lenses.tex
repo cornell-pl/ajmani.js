@@ -9,6 +9,7 @@
 \usepackage{mathpartir}
 
 \newtheorem{definition}{Definition}
+\newtheorem{conj}{Conjecture}
 \newtheorem{note}{Note}
 
 \newcommand{\finish}[1]{#1}
@@ -18,6 +19,9 @@
 
 \newcommand{\defeq}{\ensuremath{\stackrel{\Delta}{=}}}
 \newcommand{\Unit}{\ensuremath{\mathbf{Unit}}}
+\newcommand{\cat}{\ensuremath{\mathbf{cat}}}
+\newcommand{\clens}{\ensuremath{\mathbf{CLens}}}
+\newcommand{\celens}{\ensuremath{\mathbf{CELens}}}
 
 %opening
 \title{}
@@ -119,15 +123,20 @@ such that
 
 \section{C-lens}
 \begin{definition}[Categorical]
- An c-lens $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
+ A c-lens $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
 \end{definition}
 
-\begin{definition} [\comment{TODO Module}]
- 
+\begin{conj}
+ c-lenses form a category \clens, with arbitrary categories as objects and opfibrations as morphisms.
+\end{conj}
+
+
+\begin{definition} [Module]
+  A module $X$ is a tuple $\langle |X|, \delta X, \odot_X \rangle$; $|X|$ is a set, $\delta X$ is a monoid, and $\odot_X$ is a partial monoid action of $\delta X$ on $|X|$.
 \end{definition}
 
 \begin{definition}[Concrete]
- An c-lens $l$ between modules $I$ and $X$ consists of the following functions
+ A ce-lens $l$ between modules $I$ and $X$ consists of the following functions
  \begin{itemize}
   \item $get_0 : I \to X$
   \item $get_1 : dI \times I \rightharpoonup dX$
@@ -166,8 +175,57 @@ such that
 %    
 %  \end{mathpar}
 
+\end{definition}
+
+\begin{definition}[Identity ce-lens]
+
+\begin{mathpar}
+  \inferrule*
+    {~}
+    {id : A \leftrightarrow A}
+  
+  \\
+  
+  \begin{array}{lcl}
+    get_0~a     &=& a \\
+    get_1~da~\_ &=& da \\
+    put~da      &=& da \\
+    init~a      &=& a 
+  \end{array}
+\end{mathpar}
 
 \end{definition}
+
+\begin{definition}[Composition of ce-lenses]
+
+\begin{mathpar}
+  \inferrule*
+    {k : A \leftrightarrow B \\ l : B \leftrightarrow C}
+    {k;l : A \leftrightarrow C}
+  
+  \\
+  
+  \begin{array}{lcl}
+    get_0      &=& k.get_0 \circ l.get_0 \\
+    get_1~da~a &=& l.get_1~(k.get_1~da~a)~(k.get_0~a) \\
+    put        &=& k.put \circ l.put \\
+    init       &=& k.init \circ l.init 
+  \end{array}
+
+\end{mathpar}
+\end{definition}
+
+\begin{conj}
+  ce-lenses form a category, \celens, with modules as objects and ce-lenses as morphisms.
+\end{conj}
+
+Every module $X$ gives rise to a category (and thus, an object in $\cat$) as follows. The objects of the category are the elements $|X|$. Morphisms in the category are $x \stackrel{dx}{\mapsto} x'$, where $dx \in \delta X$, and $dx \odot x = x'$.
+
+\begin{conj}
+  ce-lenses are a subcategory of c-lenses
+\end{conj}
+
+
 
 \section{Ideal Lenses}
 \begin{definition}
