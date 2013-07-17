@@ -487,7 +487,10 @@ X & \rTo^{q_X} & V
 \section{Category-theoretic Model of Database lenses}
 \begin{itemize}
  \item A database model has three monoids, an edit language $E$, a query language $Q$, an SMO language $S$, and an action $rw : S \times Q \to Q$
- \item The database model consists of a category $\db$ with two types of objects: source schemas and view schemas. Both source schemas and view schemas are themselves categories. Objects in these categories are schema instances. The homset between a pair of objects in schema categories is a subset of $E$. A morphism corresponds to the pair of a source object and an edit. Composition of morphisms respects composition in $E$.
+ 
+ \item From the definition of a monoid action, it is the case that $rw~(s \circ s')~q = rw~s~(rw~s'~q)$. In addition, we require that $rw~s~(q \circ q') = rw~s~(rw~s'~q)$
+ 
+ \item The database model consists of a category $\db$ with two types of objects: source schemas and view schemas. Both source schemas and view schemas are themselves categories. Objects in these categories are schema instances. The homset between a pair of objects in schema categories is a subset of $E$. A morphism corresponds to the pair of a source object and an edit. Composition of morphisms respects composition in $E$. 
  
  The homset between a pair of instance schemas in $\db$ is $S$, and between any other pair objects is $Q$. Composition of morphisms respects composition in $E$ and $Q$, as well as the action $rw$. Every morphism in $\db$ is a functor.
  
