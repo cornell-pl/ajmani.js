@@ -380,21 +380,30 @@ Another observation we make is that size of the edit produced in the composition
 of edits, we permit the presence of queries in edits.
 
 \subsection{Queries}
-\begin{definition}[Q-Module] A Q-Module $I$ consists of $(I_m,Q_I,\rhd_{I},V_I)$ with
+\begin{definition}[Q-Module] A Q-Module $I$ consists of $(I_m,Q_I,\rhd_I,V_I)$ with
 \begin{itemize}
 \item $I_m$ is a module
 \item $Q_I$ is a monoid of queries
-\item $V_I$ is a module of Views
-\item $\rhd_{I} : |I_m| \times Q_I \to |V_I|$ is a function which represents action of applying a query.
+\item $V_I$ is a module $(|V_I|,Q_I,\rhd_I)$
+\item $|I_m| \subseteq |V_I|$
+\item $\rhd_{I} : |V_I| \times Q_I \to |V_I|$ is a function which represents action of applying a query.
 \end{itemize}
 \end{definition} 
 
 \begin{definition}[Liftable Queries]
-Given Q-modules $I$ and $X$, and a ce-lens $l : I_m \leftrightarrow X_m$, we say that $Q_X$ can be lifted to $Q_I$ if there exists a function $k : |V_I| \to |V_x|$ such that for all $q_X$ $(\in Q_X)$m there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commutes. 
+Given Q-modules $I$ and $X$, and a ce-lens $l : I_m \leftrightarrow X_m$, we say that $Q_X$ can be lifted to $Q_I$ if there exists a function $k : |V_I| \to |V_x|$ such that for all $q_X$ $(\in Q_X)$, there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commutes.
 \end{definition}
 
 In other words, $Q_X$ is liftable to $Q_I$ if the following functions can be defined - $k: |V_I|  \to|V_X|$ and $lift_{X \to I}: Q_X \to Q_I$ satisfying the above property. 
 
+A well-behaved lifting should satisfy the following law
+
+ \begin{mathpar}
+   \inferrule*
+     {~}
+     {lift_{X \to I}~id_{Q_X} = id_{Q_I}}
+
+ \end{mathpar}
 
 \begin{figure}[ht]
 \begin{displaymath}
