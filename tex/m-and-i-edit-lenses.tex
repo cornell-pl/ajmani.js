@@ -334,6 +334,8 @@ and $l_2: Y \xleftrightarrow{I_2} Z$ is an ideal lens $l_1;l_2: X
 over $Y$.
 \end{definition}
 
+\section{Examples}
+
 
 \section{Embedding Edit Lenses}
 Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X$ and $Y$ consists of
@@ -425,7 +427,7 @@ The problem with this naive approach is that $b$ is materialized as an intermedi
 
 We make the observation that $k.get_1$
 might not require the whole of $b$ but a relatively miniscule
- part of it (for example, a few records from the
+ part of it (for example, a few  records from the
 database). So, to improve upon the existing naive implementation we
 propose an alternative approach of using queries to represent the
 required parts of the object while transforming edits. 
@@ -440,7 +442,24 @@ of edits, we permit the presence of queries in edits.
 \item $Q_I$ is a monoid of queries
 \item $V_I$ is a module $(|V_I|,Q_I,\rhd_I)$
 \item $|I_m| \subseteq |V_I|$
-\item $\rhd_{I} : |V_I| \times Q_I \to |V_I|$ is a function which represents action of applying a query.
+\item $\rhd_{I} : |V_I| \times Q_I \to |V_I|$ is a function which
+  represents action of applying a query.
+
+% \item $I_m$ is a module
+% \item $Q_I$ is a set of queries
+% \item $V_I$ is a module $(|V_I|,Q_I,\rhd_I)$
+% \item $|I_m| \subseteq |V_I|$
+% \item $\rhd_{I}^{g} : |V_I| \times Q_I \to |V_I|$ is a function which
+%   represents action of applying a query
+% \item $Q_{I}^*$ is the free monoid of $Q_I$
+% \item $\rhd_{I} : |V_I| \times Q_{I}^{*} \to |V_i|$ is defined as
+% \begin{align*}
+% \rhd_{I}~(v,\epsilon) =~&v \\ 
+% \rhd_{I}~(v,q_1,q_2 \ldots q_n) =~&let~v' = \rhd_{I}^{g}~(v,q_1)~in \\
+%                                                    &
+%                                                    \rhd_{I}~(v',q_2,q_3,
+%                                                    \ldots ,q_n)
+
 \end{itemize}
 \end{definition} 
 
