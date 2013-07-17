@@ -10,6 +10,7 @@
 
 \newtheorem{definition}{Definition}
 \newtheorem{conj}{Conjecture}
+\newtheorem{prop}{Proposition}
 \newtheorem{note}{Note}
 
 \newcommand{\finish}[1]{#1}
@@ -32,6 +33,29 @@
 \begin{document}
 
 \maketitle
+
+% \section{Introduction}
+% An edit lens between modules X and Y is $\langle C, init_C, K, putr, putl \rangle$, where $C$ is the type of complement, and $K \subseteq X \times C \times Y$ is the consistency relation. \\
+% The type of $putr$, $dX \times C \to dY \times C$ can be expressed as the isomorphic type $(dX \times C \to dY, dX \to C \to C)$. Thus, we can view the $putr$ function as having two components; one that translates an edit on $X$ into an edit on $Y$ (using $X$-data from the complement), and another that updates the complement (its $X$-data and alignment data) with respect to the edit on $X$.
+% 
+% [NB: We can view data as being $X$-data, $Y$-data, shared data, or alignment data. By $X$-data, we mean data that is present \emph{solely} in $X$ and not in $Y$, and similarly $Y$-data. An example of alignment data is a mapping of indices between two lists. The collection of $X$-indices can be considered $X$-data (and similarly for $Y$), but the mapping itself depends on both. This isn't shared data as it is not data that is present in both $X$ and $Y$ separately. An alternative term for alignment data can be \emph{state}.]
+% 
+% For a symmetric lens, the complement represents the data that is not shared. In an edit lens, there may be no necessity to capture all this data. For example, if we consider a list-mapping edit lens where the updates are list reorderings, the complement could just be \Unit. 
+% 
+% Alternatively, let us compare symmetric and edit lenses between $A \times D$ and $A \times E$, where updates include a filter operation. The complement for the symmetric lens would be $D \times E$. 
+% The complement for the edit lens needs to be $A \times D \times E$; this is because we need to write the transformation $d(A \times D) \to C \to C$, and doing so requires access to the data in $A$. If the complement were just $D \times E$, an update $filter~on~(A=a)$ cannot be processed , as there is insufficient information to know which elements get filtered.
+% Thus, for a sufficiently rich set of updates, the complement often subsumes the entirety of the data in the two sources.
+% [This issue does not arise in Hofmann et. al.'s paper, as the monoids of edits they consider are not rich enough.]
+% 
+% Ideally, the complement update part of the $putr$ transformation would have the type $(dX, X) \to C \to C$. The changes to the $X$-related components of $C$ can be calcluated from the first argument, and the remainder of $C$ can be propagated from the second argument. 
+% 
+% The complement must contain all the alignment data, since it doesn't exist anywhere else. If the complement contains all the $X$-data, then the complement update part of $putr$ could have its type replaced with $(dX, Y) \to C \to C$, since the shared data is contained in both $X$ and $Y$. The reason for wanting to do this is that $Y$ may be materialized, while $X$ may not. 
+% In the case of schema evolution, we want to translate $V1$ updates to a $V2$ database, where $V2$ is materialized, and $V1$ is not.
+% 
+% Even if the complement contains sufficient information, there is still a problem that the lens may produce very large edits. For example, consider the case of a database update in which a column is deleted from a table. This has a corresponding edit lens with a $putr$ function of type $dA \times C \to dB \times C$. If we have an edit that deletes records depending on whether a predicate holds of the deleted column, this edit can not be directly translated to an edit on dB. This is because $B$ does not have the deleted column. Thus, we first need to apply a filter to the complement to discover which records will be deleted, and then embed this result in a $dB$ edit. This results in the size of the edit being proportional to the result of the filter, which can be the entire table in the worst case.
+% 
+% If we have replaced the complement update part of $putr$ with $(dX, Y) \to C \to C$, or more generally, $(dX, Y) \to dC$, then we can combine the two components of $putr$ as $dX \to d(Y \times C)$. This solves the problem of $putr$ producing a large edit, since the result of the computation on $C$ does not need to be embedded in the edit. Instead, the computation itself can be expressed in the edit and computed later.
+
 
 \section{Opfibrations}
 
@@ -110,25 +134,16 @@ such that
 
 
 \end{definition}
-\section{Category-theoretic Model of Database lenses}
-\begin{itemize}
- \item A database model has two languages, an edit language
- \item Categories have two types of objects: schemas and views. are types equipped with a monoid of updates. Objects of the category are values, and morphisms between objects are updates corresponding to the monoid action. Thus, the pair of a source object and update corresponds to a single morphism. 
- \item A Symmetric lens between $X$ and $Y$ is a pair of opfibrations (functors) between categories $X$ and $I$, and $Y$ and $I$.
- \item A query is an opfibration from $X$ to $V$.
- \item A query translation is $\ldots$
- %\item A correspondence between two categories is specified by its ``l-diagram''. In the simple case (no state), the l-diagram is just $X \to X \cap Y \leftarrow Y$.
- %\item Every l-diagram has a limit, defined the \emph{ideal}. 
-\end{itemize}
 
-\section{C-lens}
-\begin{definition}[Categorical]
+\section{C-lenses and CE-lenses}
+\begin{definition}[C-lens]
  A c-lens $l$ between categories $I$ and $X$ is an opfibration $l : I \Rightarrow X$.
+ [An alternative presentation of c-lenses with lens laws can be found in \cite{jr13}].
 \end{definition}
 
-\begin{conj}
+\begin{prop}
  c-lenses form a category \clens, with arbitrary categories as objects and opfibrations as morphisms.
-\end{conj}
+\end{prop}
 
 \begin{definition} [Module]
   A module $X$ is a tuple $\langle |X|, \delta X, \odot_X \rangle$; $|X|$ is a set, $\delta X$ is a monoid, and $\odot_X$ is a partial monoid action of $\delta X$ on $|X|$.
@@ -141,7 +156,7 @@ such that
 \item Morphisms in the category are $x \stackrel{dx}{\mapsto} x'$, where $dx \in \delta X$, and $dx \odot x = x'$.
 \end{itemize}
 
-\begin{definition}[Concrete]
+\begin{definition}[CE-lens]
  A ce-lens $l$ between modules $I$ and $X$ consists of the following functions
  \begin{itemize}
   \item $get_0 : I \to X$
@@ -180,6 +195,8 @@ such that
   A ce-lens differs from a c-lens in two ways. 
 \begin{enumerate}
  \item The $put$ function of a c-lens guarantees a least update, since the lens is an opfibration. The $put$ function of a ce-lens does not guarantee a least update. 
+ \comment{What laws do we need to add to ce-lenses to guarantee a least update?}
+ 
  \item The $put$ function of a c-lens between modules corresponds to a function of the type $dX \times I \to dI$. The type of $put$ in a ce-lens implies that the translation of $dX$ to $dI$ can not depend on the value of $I$. A c-lens does not impose this restriction. In cases where the $put$ function does depend on the value of $I$, the edit monoid $dI$ can be enriched such that the $put$ function no longer needs to depend on $I$.
 \end{enumerate}
 These differences imply that neither c-lenses nor ce-lenses are a subclass of the other.
@@ -224,9 +241,27 @@ These differences imply that neither c-lenses nor ce-lenses are a subclass of th
 \end{mathpar}
 \end{definition}
 
-\begin{conj}
+\begin{prop}
   ce-lenses form a category, $\celens$, with modules as objects and ce-lenses as morphisms.
+\end{prop}
+
+\begin{conj}
+  In figure \ref{fig:ce-lens-pullback}, $I$ is the pullback of the diagram consisting of $p_1$ and $p_2$. If $p1$ ($p2$) is a ce-lens, then $q2$ ($q1$) is a ce-lens.
 \end{conj}
+
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+  &        &     &       & I &        &     &      &    \\
+  &        &     & \ldTo^{q_1} &   & \rdTo^{q_2}  &     &      &    \\ 
+  &        & I_1 &       &   &        & I_2 &       &    \\
+  &        &     & \rdTo^{p_1} &   & \ldTo^{p_2}  &     &  &    \\
+  &        &     &       & Y &        &     &       & 
+\end{diagram}
+\end{displaymath}
+\caption{Pullback of ce-lenses}
+\label{fig:ce-lens-pullback}
+\end{figure}  
 
 \section{Ideal Lenses}
 \begin{definition}
@@ -244,13 +279,14 @@ and $l_2: Y \xleftrightarrow{I_2} Z$ is an ideal lens $l_1;l_2: X
 \xleftrightarrow{I} Z$ where $I$ is the pullback of $I_1$ and $I_2$
 over $Y$.
 \end{definition}
-	
+
+
 \section{Embedding Edit Lenses}
 Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X$ and $Y$ consists of
 \begin{enumerate}
 
 \item $I = \langle K, C \to (\delta X, C, \delta Y), \odot_I \rangle$ \\
-      $f \odot (x, c, y) = (dx \odot x, c', dy \odot y) \textnormal{ where } (dx, c', dy) = f~c $ \\
+      $f \odot (x, c, y) = (dx \odot x, c', dy \odot y) \textnormal{ where } (dx, c', dy) = f~c $ 
 \item Two ce-lenses $k: I \leftrightarrow X$ and $l : I \leftrightarrow Y$. We show the construction of $k$ here; the construction of $l$ is similar.
   \begin{itemize}
    \item $k.get_0~(x,c,y) = x$
@@ -258,12 +294,12 @@ Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\L
    \item $k.put~(dx) = \lambda c \to (dx, c', dy) \textnormal{ where } (dy, c') = k.\Rrightarrow(dx, c)$
   \end{itemize}
   
-\comment{TODO verify ideal-lens laws}
+\comment{TODO verify ce-lens laws for k}
 
 \end{enumerate}
 
 \subsection{Alternative embedding}
-  \comment{This section proposed an alternative embedding into c-lenses; however, this section doesn't make sense wrt an embedding into ce-lenses, without additional laws for being an opfibration}
+  \comment{This section proposed an alternative embedding into c-lenses; however, this section doesn't make sense for an embedding into ce-lenses, without additional laws for being an opfibration}
 %   We redefine the morphisms of the category $I$ such that for every $(x, dx) \in hom(X)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dy,c') = \Rrightarrow (dx,c)$, $dc = \lambda _ \to c'$.
 %   Similarly, for every $(y, dy) \in hom(Y)$, $((x,c,y),(dx,dc,dy))$ is an $I$-morphism where $(dx,c') = \Lleftarrow (dy,c)$, $dc = \lambda _ \to c'$. 
 %   
@@ -310,32 +346,12 @@ Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\L
 %  
 % \end{enumerate}
 
-\section{Local Setting}
-  In the case where all data is centrally located, it can be more efficient to store the ideal instead of storing several related sources of data. This efficiency comes by way of lower redundancy, and more efficient edit translations. In such a setting, it is unnecessary to support mapping edits to the source databases, since the source databases are virtual. 
-
-  \paragraph*{Optimized translations of edits.}
-    The only requirement is to support mapping edits from source databases to the ideal (i.e. $put$), and the definition of ce-lenses is designed to optimize the composition of such edit translations. 
-  
-\begin{figure}[ht]
-\begin{displaymath}
-\begin{diagram}
-  &       & I &   &  \\
-  & \ldTo & & \rdTo & \\
-X & & & & Y      \\
-  &       & dI  & & \\
-  & \ruTo & & \luTo \\
-dX & & & & dY
-\end{diagram}
-\end{displaymath}
-\caption{Model}
-\label{fig:db-lens}
-\end{figure}
-
-\section{Composing $get$}
+\section{Composing $get_1$}
 Let us recall the definition of $get_1$ for the composition of two ce-lenses $k : A \leftrightarrow B $ and $l : B \leftrightarrow C$. 
-\[
-(k;l).get_1~(da,a) = l.get_1~(k.get_1~(da,a),b) \textnormal{ where } b = (k.get_0~a)
-\]
+\begin{align*}
+ (k;l).get_1~(da,a) &= l.get_1~(k.get_1~(da,a),b) \\
+                    & \quad \textnormal{ where } b = (k.get_0~a)
+\end{align*}
 
 \begin{figure}[ht]
 \begin{displaymath}
@@ -360,9 +376,7 @@ database). So, to improve upon the existing naive implementation we
 propose an alternative approach of using queries to represent the
 required parts of the object while transforming edits. 
 
-\comment{TOCLEAN}
-Another observation we make is that the edit $d_{i_2}$ might be quite large, as
-the values of $I$ might be embedded in $d_{i_2}$. In order to limit the complexity
+Another observation we make is that size of the edit produced in the composition above might be quite large, as the values of $a$ and $b$ might be embedded in the edit. In order to limit the complexity
 of edits, we permit the presence of queries in edits.
 
 \subsection{Queries}
@@ -376,11 +390,10 @@ of edits, we permit the presence of queries in edits.
 \end{definition} 
 
 \begin{definition}[Liftable Queries]
-Given Q-modules $I$ and $X$, ce-lens $l : I_m \leftrightarrow X_m$, we say $Q_X$ can be lifted to $Q_I$ 
-if there exist a function $k : |V_I| \to |V_x|$ such that forall $q_X$ $(\in Q_X)$ there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commute. 
+Given Q-modules $I$ and $X$, and a ce-lens $l : I_m \leftrightarrow X_m$, we say that $Q_X$ can be lifted to $Q_I$ if there exists a function $k : |V_I| \to |V_x|$ such that for all $q_X$ $(\in Q_X)$m there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commutes. 
 \end{definition}
 
-If Queries can be lifted then can define the function $k: |V_I|  \to|V_X|$ and lift function $lift_{X \to I}: Q_X \to Q_I$ satisfying the above property. 
+In other words, $Q_X$ is liftable to $Q_I$ if the following functions can be defined - $k: |V_I|  \to|V_X|$ and $lift_{X \to I}: Q_X \to Q_I$ satisfying the above property. 
 
 
 \begin{figure}[ht]
@@ -424,6 +437,13 @@ X & \rTo^{q_X} & V
 \label{fig:database-lens}
 \end{figure}
 
+
+\section{Local Setting}
+  In the case where all data is centrally located, it can be more efficient to store the ideal instead of storing several related sources of data. This efficiency comes by way of lower redundancy, and more efficient edit translations. In such a setting, it is unnecessary to support mapping edits to the data sources (using $get_1$), since the sources are virtual. 
+
+  \paragraph*{Optimized translations of edits.}
+    The only requirement is to support mapping edits from data sources to the ideal (i.e. $put$), and the definition of ce-lenses is designed to optimize the composition of such edit translations. 
+  
 \section{I-lenses in a distributed setting}
 \begin{figure}[ht]
 \begin{displaymath}
@@ -440,11 +460,25 @@ X & \rTo^{q_X} & V
 \label{fig:distributed}
 \end{figure}
 
+\section{Category-theoretic Model of Database lenses}
+\begin{itemize}
+ \item A database model has two languages, an edit language
+ \item Categories have two types of objects: schemas and views. are types equipped with a monoid of updates. Objects of the category are values, and morphisms between objects are updates corresponding to the monoid action. Thus, the pair of a source object and update corresponds to a single morphism. 
+ \item A Symmetric lens between $X$ and $Y$ is a pair of opfibrations (functors) between categories $X$ and $I$, and $Y$ and $I$.
+ \item A query is an opfibration from $X$ to $V$.
+ \item A query translation is $\ldots$
+ %\item A correspondence between two categories is specified by its ``l-diagram''. In the simple case (no state), the l-diagram is just $X \to X \cap Y \leftarrow Y$.
+ %\item Every l-diagram has a limit, defined the \emph{ideal}. 
+\end{itemize}
+
+
 \section{Questions}
 \begin{enumerate}
  \item If in the composition of two lenses we take ideal as the pull back of the two ideals. How do we define the edit language for the new ideal.
 \end{enumerate}
 
+\bibliographystyle{plain}
+\bibliography{m-and-i-edit-lenses}
 
 \end{document}
 
