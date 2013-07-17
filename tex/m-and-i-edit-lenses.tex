@@ -20,6 +20,7 @@
 
 \newcommand{\defeq}{\ensuremath{\stackrel{\Delta}{=}}}
 \newcommand{\Unit}{\ensuremath{\mathbf{Unit}}}
+\newcommand{\db}{\ensuremath{\mathbf{DB}}}
 \newcommand{\cat}{\ensuremath{\mathbf{cat}}}
 \newcommand{\clens}{\ensuremath{\mathbf{CLens}}}
 \newcommand{\celens}{\ensuremath{\mathbf{CELens}}}
@@ -410,12 +411,26 @@ A well-behaved lifting should satisfy the following law
 \begin{diagram}
 |X_m| & \lTo^{l} & |I_m|\\
 \dTo^{q_X } & & \dTo^{q_I} \\
+|V_X| & \lTo^{k} & |V_I| \\
+\dTo^{q'_X } & & \dTo^{q'_I} \\
 |V_X| & \lTo^{k} & |V_I| 
 \end{diagram}
 \end{displaymath}
 \caption{Lifting Queries}
 \label{fig:lifting-queries}
 \end{figure}
+
+\begin{prop}
+ If $X$ and $I$ are Q-modules, and $lift_{X \to I}$ is a well-behaved lifting for $k : |V_I| \to |V_X|$, then the following property holds
+ \[
+  \inferrule*
+   {get_0~i = x}
+   {k~i = x}
+ \]
+
+\end{prop}
+
+
 
 \subsection{Optimizing edit mapping function composition}
 The new type of put function (for functor $p: I \to X$) we propose is
@@ -453,31 +468,29 @@ X & \rTo^{q_X} & V
   \paragraph*{Optimized translations of edits.}
     The only requirement is to support mapping edits from data sources to the ideal (i.e. $put$), and the definition of ce-lenses is designed to optimize the composition of such edit translations. 
   
-\section{I-lenses in a distributed setting}
-\begin{figure}[ht]
-\begin{displaymath}
-\begin{diagram}
- dX & \rTo^X & dCY^-  &              &           &            &
-      &             & dX       & \rTo^X  &  X' \\
-      &             & dCY^- & \rTo^C  & dY^-   &            &
-      &             & dC       & \rTo^C & C' \\
-      &             &            &             & dY^-    & \rTo^Y &
-      (dY,dC)    &            &  dY       & \rTo^Y & Y' \\
-\end{diagram}
-\end{displaymath}
-\caption{General lens setting}
-\label{fig:distributed}
-\end{figure}
+% \section{I-lenses in a distributed setting}
+% \begin{figure}[ht]
+% \begin{displaymath}
+% \begin{diagram}
+%  dX & \rTo^X & dCY^-  &              &           &            &
+%       &             & dX       & \rTo^X  &  X' \\
+%       &             & dCY^- & \rTo^C  & dY^-   &            &
+%       &             & dC       & \rTo^C & C' \\
+%       &             &            &             & dY^-    & \rTo^Y &
+%       (dY,dC)    &            &  dY       & \rTo^Y & Y' \\
+% \end{diagram}
+% \end{displaymath}
+% \caption{General lens setting}
+% \label{fig:distributed}
+% \end{figure}
 
 \section{Category-theoretic Model of Database lenses}
 \begin{itemize}
- \item A database model has two languages, an edit language
- \item Categories have two types of objects: schemas and views. are types equipped with a monoid of updates. Objects of the category are values, and morphisms between objects are updates corresponding to the monoid action. Thus, the pair of a source object and update corresponds to a single morphism. 
- \item A Symmetric lens between $X$ and $Y$ is a pair of opfibrations (functors) between categories $X$ and $I$, and $Y$ and $I$.
- \item A query is an opfibration from $X$ to $V$.
- \item A query translation is $\ldots$
- %\item A correspondence between two categories is specified by its ``l-diagram''. In the simple case (no state), the l-diagram is just $X \to X \cap Y \leftarrow Y$.
- %\item Every l-diagram has a limit, defined the \emph{ideal}. 
+ \item A database model has three monoids, an edit language $E$, a query language $Q$, an SMO language $S$, and an action $rw : S \times Q \to Q$
+ \item The database model consists of a category $\db$ with two types of objects: source schemas and view schemas. Both source schemas and view schemas are themselves categories. Objects in these categories are schema instances. The homset between a pair of objects in schema categories is a subset of $E$. A morphism corresponds to the pair of a source object and an edit. Composition of morphisms respects composition in $E$.
+ 
+ The homset between a pair of instance schemas in $\db$ is $S$, and between any other pair objects is $Q$. Composition of morphisms respects composition in $E$ and $Q$, as well as the action $rw$. Every morphism in $\db$ is a functor.
+ 
 \end{itemize}
 
 
