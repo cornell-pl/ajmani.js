@@ -336,8 +336,14 @@ and $l_2: Y \xleftrightarrow{I_2} Z$ is an ideal lens $l_1;l_2: X
 over $Y$.
 \end{definition}
 
-\section{Examples}
+\subsection{Alternate definition of composition}
+The composition of two ideal lenses $l_1: X \xleftrightarrow{I_1} Y$
+and $l_2: Y \xleftrightarrow{I_2} Z$ under a given ideal lens $l_3:
+I_1 \xleftrightarrow{I} I_2$  is an ideal lens $l_1;l_2: X
+\xleftrightarrow{I} Z$.
 
+\section{Examples}
+\comment{TODO}
 
 \section{Embedding Edit Lenses}
 Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X$ and $Y$ consists of
@@ -506,12 +512,15 @@ A well-behaved lifting should satisfy the following law
 
 \subsection{Optimizing edit mapping function composition}
 
-  Permitting the presence of queries in edits, we define a generalization of $get_1$ for a ce-lens $I \leftrightarrow X$, where $I$ and $X$ are Q-modules:
+Permitting the presence of queries in edits, we define a
+generalization (\comment{Is the use of this word correct}) of $get_1$
+for a ce-lens $I \leftrightarrow X$, where $I$ and $X$ are Q-modules:
 \[
   fget_1 : \forall \phi. \sum_{q \in Q_\phi} (\phi \rhd q \to \delta I) \to \sum_{q \in Q_\phi} (\phi \rhd q \to \sum_{q' \in Q_I} (I \rhd q' \to \delta X))
 \]
 
-  The idea is motivated by the stream fusion paper of having an intermediate structure to optimize composition.
+The idea is motivated by the stream fusion paper of having an
+intermediate structure to optimize composition.
  \subsubsection{Laws}
   
   \begin{mathpar}
@@ -545,9 +554,21 @@ A well-behaved lifting should satisfy the following law
 \end{mathpar}  
 
 \comment{TODO: Show composition can be done easily using lift} 
+\subsubsection{Defining  $get_1$ using $fget_1$}
+Given $fget_1$ for the above ce-lens, we give a definition of $get_1$
+as
+\begin{align*}
+get_1~(di,i) =~&let~(_,f) =~fget_1~(id,\lambda~\_~\to di)~in\\
+                       &let~(q,g) =~f~i~in \\
+                       &g~(i~\rhd~q)
+\end{align*}
 
+\comment{Come up with laws for $fget_1$ to such that the above
+  embedding satisfies laws for $get_1$.}
 
 \section{Models of DB-Lenses}
+\comment{Needs refactoring}
+
   We propose two models of using ce-lenses for databases; we describe both of them here for comparison.
   
 \subsection{Using Q-modules}
@@ -573,13 +594,6 @@ A well-behaved lifting should satisfy the following law
  
 \end{itemize}
 
-\section{Database Lenses}
-
-\begin{definition}
-\comment{Definition here}
-\end{definition}
-
-
 \begin{figure}[ht]
 \begin{displaymath}
 \begin{diagram}
@@ -601,21 +615,22 @@ X & \rTo^{q_X} & V
   \paragraph*{Optimized translations of edits.}
     The only requirement is to support mapping edits from data sources to the ideal (i.e. $put$), and the definition of ce-lenses is designed to optimize the composition of such edit translations. 
   
-% \section{I-lenses in a distributed setting}
-% \begin{figure}[ht]
-% \begin{displaymath}
-% \begin{diagram}
-%  dX & \rTo^X & dCY^-  &              &           &            &
-%       &             & dX       & \rTo^X  &  X' \\
-%       &             & dCY^- & \rTo^C  & dY^-   &            &
-%       &             & dC       & \rTo^C & C' \\
-%       &             &            &             & dY^-    & \rTo^Y &
-%       (dY,dC)    &            &  dY       & \rTo^Y & Y' \\
-% \end{diagram}
-% \end{displaymath}
-% \caption{General lens setting}
-% \label{fig:distributed}
-% \end{figure}
+\section{Distributed setting}
+\comment{TODO}
+\begin{figure}[ht]
+\begin{displaymath}
+\begin{diagram}
+ dX & \rTo^X & dCY^-  &              &           &            &
+      &             & dX       & \rTo^X  &  X' \\
+      &             & dCY^- & \rTo^C  & dY^-   &            &
+      &             & dC       & \rTo^C & C' \\
+      &             &            &             & dY^-    & \rTo^Y &
+      (dY,dC)    &            &  dY       & \rTo^Y & Y' \\
+\end{diagram}
+\end{displaymath}
+\caption{General lens setting}
+\label{fig:distributed}
+\end{figure}
 
 
 \section{Questions}
