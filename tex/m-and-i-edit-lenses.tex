@@ -26,6 +26,7 @@
 \newcommand{\clens}{\ensuremath{\mathbf{CLens}}}
 \newcommand{\celens}{\ensuremath{\mathbf{CELens}}}
 \newcommand{\letin}[2]{\ensuremath{\textnormal{let}~#1=#2~\textnormal{in}}}
+\newcommand{\where}[2]{\ensuremath{\textnormal{where}~#1=#2}}
 
 %opening
 \title{}
@@ -499,9 +500,8 @@ A well-behaved lifting should satisfy the following law
 
  \end{mathpar}
 
-\begin{definition}[Dependent foo \comment{Think of some terminology}]
-Given a Q-module $I$, we define dependent foo on $\sum\limits_{q
-  \in Q_I} (I \rhd q \to Q_I)$ as 
+\begin{definition}[Subqueries]
+Given a Q-module $I$, $Q_I$ has subqueries if there is a homomorphism $f : \sum\limits_{q \in Q_I} (I \rhd q \to Q_I) \to $ as 
 \begin{align*}
 v~\rhd~(q~\dcirc~f)=~&let~v'=v~\rhd~q~in \\
                                     &v~\rhd~f~v'
@@ -538,6 +538,8 @@ intermediate structure to optimize composition.
   \end{mathpar}
 
 \subsubsection{Composition}
+
+
 \begin{mathpar}
   \inferrule*
     {k : A \leftrightarrow B \\ l : B \leftrightarrow C}
@@ -549,12 +551,11 @@ intermediate structure to optimize composition.
     get_0          &=& k.get_0 \circ l.get_0 \\
     fget_1~M~(q,f) &=& \letin{\_, g}{k.fget_1~M~(q,f)} \\
                    && (q, \lambda v. \letin{(q', h)}{g~v} \\
-                   && \quad \letin{f}{\lambda v'. \letin{\_, j}{l.get~I~(q', h)}} \\
-                   && \qquad \\
-                   && \quad \letin{\hat{q}}{H(q', f)} \\
-                   && \quad (, \lambda v'. \letin{\_, j}{l.get~I~(q', h)} \\
+                   && \quad (q' \dcirc (fst \circ f), k_{A \to B} \circ snd \circ f)\\
+                   && \quad \where{f}{\lambda v'.} \\
+                   && \qquad \letin{\_, j}{l.get~I~(q', h)} \\
                    && \qquad \letin{(q'', p)}{j~v'} \\
-                   && \qquad p~?\\
+                   && \qquad (q' \times lift_{B \to A} (q''), p) \\                   
     put            &=& k.put \circ l.put 
 %     init       &=& k.init \circ l.init 
   \end{array}
