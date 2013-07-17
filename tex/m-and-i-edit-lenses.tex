@@ -35,30 +35,83 @@
 
 \maketitle
 
-% \section{Introduction}
-% An edit lens between modules X and Y is $\langle C, init_C, K, putr, putl \rangle$, where $C$ is the type of complement, and $K \subseteq X \times C \times Y$ is the consistency relation. \\
-% The type of $putr$, $dX \times C \to dY \times C$ can be expressed as the isomorphic type $(dX \times C \to dY, dX \to C \to C)$. Thus, we can view the $putr$ function as having two components; one that translates an edit on $X$ into an edit on $Y$ (using $X$-data from the complement), and another that updates the complement (its $X$-data and alignment data) with respect to the edit on $X$.
-% 
-% [NB: We can view data as being $X$-data, $Y$-data, shared data, or alignment data. By $X$-data, we mean data that is present \emph{solely} in $X$ and not in $Y$, and similarly $Y$-data. An example of alignment data is a mapping of indices between two lists. The collection of $X$-indices can be considered $X$-data (and similarly for $Y$), but the mapping itself depends on both. This isn't shared data as it is not data that is present in both $X$ and $Y$ separately. An alternative term for alignment data can be \emph{state}.]
-% 
-% For a symmetric lens, the complement represents the data that is not shared. In an edit lens, there may be no necessity to capture all this data. For example, if we consider a list-mapping edit lens where the updates are list reorderings, the complement could just be \Unit. 
-% 
-% Alternatively, let us compare symmetric and edit lenses between $A \times D$ and $A \times E$, where updates include a filter operation. The complement for the symmetric lens would be $D \times E$. 
-% The complement for the edit lens needs to be $A \times D \times E$; this is because we need to write the transformation $d(A \times D) \to C \to C$, and doing so requires access to the data in $A$. If the complement were just $D \times E$, an update $filter~on~(A=a)$ cannot be processed , as there is insufficient information to know which elements get filtered.
-% Thus, for a sufficiently rich set of updates, the complement often subsumes the entirety of the data in the two sources.
-% [This issue does not arise in Hofmann et. al.'s paper, as the monoids of edits they consider are not rich enough.]
-% 
-% Ideally, the complement update part of the $putr$ transformation would have the type $(dX, X) \to C \to C$. The changes to the $X$-related components of $C$ can be calcluated from the first argument, and the remainder of $C$ can be propagated from the second argument. 
-% 
-% The complement must contain all the alignment data, since it doesn't exist anywhere else. If the complement contains all the $X$-data, then the complement update part of $putr$ could have its type replaced with $(dX, Y) \to C \to C$, since the shared data is contained in both $X$ and $Y$. The reason for wanting to do this is that $Y$ may be materialized, while $X$ may not. 
-% In the case of schema evolution, we want to translate $V1$ updates to a $V2$ database, where $V2$ is materialized, and $V1$ is not.
-% 
-% Even if the complement contains sufficient information, there is still a problem that the lens may produce very large edits. For example, consider the case of a database update in which a column is deleted from a table. This has a corresponding edit lens with a $putr$ function of type $dA \times C \to dB \times C$. If we have an edit that deletes records depending on whether a predicate holds of the deleted column, this edit can not be directly translated to an edit on dB. This is because $B$ does not have the deleted column. Thus, we first need to apply a filter to the complement to discover which records will be deleted, and then embed this result in a $dB$ edit. This results in the size of the edit being proportional to the result of the filter, which can be the entire table in the worst case.
-% 
-% If we have replaced the complement update part of $putr$ with $(dX, Y) \to C \to C$, or more generally, $(dX, Y) \to dC$, then we can combine the two components of $putr$ as $dX \to d(Y \times C)$. This solves the problem of $putr$ producing a large edit, since the result of the computation on $C$ does not need to be embedded in the edit. Instead, the computation itself can be expressed in the edit and computed later.
+\section{Introduction}
+\comment{Verbatim copy from previous writeup. Doesn't make much sense
+  here without some refactoring}
+
+An edit lens between modules X and Y is $\langle C, init_C, K, putr, putl \rangle$, where $C$ is the type of complement, and $K \subseteq X \times C \times Y$ is the consistency relation. \\
+The type of $putr$, $dX \times C \to dY \times C$ can be expressed as
+the isomorphic type $(dX \times C \to dY, dX \to C \to C)$. Thus, we
+can view the $putr$ function as having two components; one that
+translates an edit on $X$ into an edit on $Y$ (using $X$-data from the
+complement), and another that updates the complement (its $X$-data and
+alignment data) with respect to the edit on $X$.
+ 
+[NB: We can view data as being $X$-data, $Y$-data, shared data, or
+alignment data. By $X$-data, we mean data that is present
+\emph{solely} in $X$ and not in $Y$, and similarly $Y$-data. An
+example of alignment data is a mapping of indices between two
+lists. The collection of $X$-indices can be considered $X$-data (and
+similarly for $Y$), but the mapping itself depends on both. This isn't
+shared data as it is not data that is present in both $X$ and $Y$
+separately. An alternative term for alignment data can be
+\emph{state}.]
+
+For a symmetric lens, the complement represents the data that is not
+shared. In an edit lens, there may be no necessity to capture all this
+data. For example, if we consider a list-mapping edit lens where the
+updates are list reorderings, the complement could just be \Unit.
+ 
+Alternatively, let us compare symmetric and edit lenses between $A
+\times D$ and $A \times E$, where updates include a filter
+operation. The complement for the symmetric lens would be $D \times
+E$.  The complement for the edit lens needs to be $A \times D \times
+E$; this is because we need to write the transformation $d(A \times D)
+\to C \to C$, and doing so requires access to the data in $A$. If the
+complement were just $D \times E$, an update $filter~on~(A=a)$ cannot
+be processed , as there is insufficient information to know which
+elements get filtered. Thus, for a sufficiently rich set of updates,
+the complement often subsumes the entirety of the data in the two
+sources. [This issue does not arise in Hofmann et. al.'s paper, as
+the monoids of edits they consider are not rich enough.]
+
+Ideally, the complement update part of the $putr$ transformation would
+have the type $(dX, X) \to C \to C$. The changes to the $X$-related
+components of $C$ can be calcluated from the first argument, and the
+remainder of $C$ can be propagated from the second argument.
+ 
+% The complement must contain all the alignment data, since it doesn't
+% exist anywhere else. If the complement contains all the $X$-data, then
+% the complement update part of $putr$ could have its type replaced with
+% $(dX, Y) \to C \to C$, since the shared data is contained in both $X$
+% and $Y$. The reason for wanting to do this is that $Y$ may be
+% materialized, while $X$ may not.  In the case of schema evolution, we
+% want to translate $V1$ updates to a $V2$ database, where $V2$ is
+% materialized, and $V1$ is not.
+
+Even if the complement contains sufficient information, there is still
+a problem that the lens may produce very large edits. For example,
+consider the case of a database update in which a column is deleted
+from a table. This has a corresponding edit lens with a $putr$
+function of type $dA \times C \to dB \times C$. If we have an edit
+that deletes records depending on whether a predicate holds of the
+deleted column, this edit can not be directly translated to an edit on
+dB. This is because $B$ does not have the deleted column. Thus, we
+first need to apply a filter to the complement to discover which
+records will be deleted, and then embed this result in a $dB$
+edit. This results in the size of the edit being proportional to the
+result of the filter, which can be the entire table in the worst case.
+
+% If we have replaced the complement update part of $putr$ with $(dX, Y)
+% \to C \to C$, or more generally, $(dX, Y) \to dC$, then we can combine
+% the two components of $putr$ as $dX \to d(Y \times C)$. This solves
+% the problem of $putr$ producing a large edit, since the result of the
+% computation on $C$ does not need to be embedded in the edit. Instead,
+% the computation itself can be expressed in the edit and computed
+% later.
 
 
-\section{Opfibrations}
+\section{Background}
 
 \begin{definition}[Opcartesian Lifting] \label{opcartesian}
   Let $p : I \to X$ be a functor. A morphism $f : A \to B$ in $I$ is opcartesian if for all morphisms $g : A \to C$ in $I$ and $v : pB \to pC$ in $X$ such that $v \cdot pf = pg$, there exists a unique morphism $h : B \to C$ satisfying $h \cdot f = g$
