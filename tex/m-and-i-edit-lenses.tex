@@ -18,12 +18,14 @@
 \newcommand{\jnf}[1]{\finish{\textbf{\textcolor{blue}{[#1---JNF]}}}}
 \newcommand{\raghu}[1]{\finish{\textbf{\textcolor{blue}{[#1---Raghu]}}}}
 
+\newcommand{\dcirc}{\ensuremath{\hat{\circ}}}
 \newcommand{\defeq}{\ensuremath{\stackrel{\Delta}{=}}}
 \newcommand{\Unit}{\ensuremath{\mathbf{Unit}}}
 \newcommand{\db}{\ensuremath{\mathbf{DB}}}
 \newcommand{\cat}{\ensuremath{\mathbf{cat}}}
 \newcommand{\clens}{\ensuremath{\mathbf{CLens}}}
 \newcommand{\celens}{\ensuremath{\mathbf{CELens}}}
+\newcommand{\letin}[2]{\ensuremath{\textnormal{let}~#1=#2~\textnormal{in}}}
 
 %opening
 \title{}
@@ -528,8 +530,15 @@ A well-behaved lifting should satisfy the following law
   
   \begin{array}{lcl}
     get_0          &=& k.get_0 \circ l.get_0 \\
-    fget_1~M~(q,f) &=& l.fget_1~(M, A) (q, q') (k.fget_1~M~(q,f)) \\
-    put            &=& k.put \circ l.put \\
+    fget_1~M~(q,f) &=& \letin{\_, g}{k.fget_1~M~(q,f)} \\
+                   && (q, \lambda v. \letin{(q', h)}{g~v} \\
+                   && \quad \letin{f}{\lambda v'. \letin{\_, j}{l.get~I~(q', h)}} \\
+                   && \qquad \\
+                   && \quad \letin{\hat{q}}{H(q', f)} \\
+                   && \quad (, \lambda v'. \letin{\_, j}{l.get~I~(q', h)} \\
+                   && \qquad \letin{(q'', p)}{j~v'} \\
+                   && \qquad p~?\\
+    put            &=& k.put \circ l.put 
 %     init       &=& k.init \circ l.init 
   \end{array}
 
