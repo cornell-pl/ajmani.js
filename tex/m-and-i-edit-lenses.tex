@@ -488,8 +488,12 @@ X & \rTo^{q_X} & V
 \begin{itemize}
  \item A database model has three monoids - an edit language $E$, an SMO language $S$, and a query language $Q$, and a monoid action $rw : S \times Q \to Q$.
  
- \item From the definition of a monoid action, it is the case that $rw~(s \circ s')~q = rw~s~(rw~s'~q)$. In addition, we require that $rw~s~(q \circ q') = rw~s~(rw~s'~q)$.
+ \item From the definition of a monoid action, it is the case that $rw~(s \circ s')~q = rw~s~(rw~s'~q)$. In addition, we require that $rw~s~(q \circ q') = (rw~s~q). (rw~s~q')$.
  
+\item The database model consist of $DB$ module $(|DB|,E,\odot)$ where the carrier is set of instances of the database.
+\item The database model consist of a Q-module $(DB,Q,\rhd,V)$.
+\item $V$ is a module with carrier set as all possible tables (and database) which can be generated as a result of query on $DB$.
+\item Each element $s$ in $S$ has an ideal-lens $L(s)$ associated with it. For $s_1,s_2 \in S$, $L(s_1 . s_2) ~=~ L(s_1) . L(s_2)$.
  \item The database model consists of a category $\db$ with two types of objects: source schemas and view schemas. Both source schemas and view schemas are themselves categories. Objects in these categories are schema instances. The homset between a pair of objects in schema categories is a subset of $E$. A morphism corresponds to the pair of a source object and an edit. Composition of morphisms respects composition in $E$. 
  
  The homset between a pair of source schemas in $\db$ is $S$, and between any other pair of objects is a subset of $Q$. Composition of morphisms respects composition in $Q$ and $S$, as well as the action $rw$. Every morphism in $\db$ is a functor.
