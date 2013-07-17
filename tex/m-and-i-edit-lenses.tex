@@ -477,15 +477,6 @@ Given Q-modules $I$ and $X$, and a ce-lens $l : S_I \leftrightarrow S_X$, we say
 
 In other words, $Q_X$ is liftable to $Q_I$ if the following functions can be defined - $k: |V_I|  \to|V_X|$ and $lift_{X \to I}: Q_X \to Q_I$ satisfying the above property. 
 
-A well-behaved lifting should satisfy the following law
-
- \begin{mathpar}
-   \inferrule*
-     {~}
-     {lift_{X \to I}~id_{Q_X} = id_{Q_I}}
-
- \end{mathpar}
-
 \begin{figure}[ht]
 \begin{displaymath}
 \begin{diagram}
@@ -499,6 +490,23 @@ A well-behaved lifting should satisfy the following law
 \caption{Lifting Queries}
 \label{fig:lifting-queries}
 \end{figure}
+A well-behaved lifting should satisfy the following law
+
+ \begin{mathpar}
+   \inferrule*
+     {~}
+     {lift_{X \to I}~id_{Q_X} = id_{Q_I}}
+
+ \end{mathpar}
+
+\begin{definition}[Dependent foo \comment{Think of some terminology}]
+Given a Q-module $I$, we define dependent foo on $\sum\limits_{q
+  \in Q_I} (I \rhd q \to Q_I)$ as 
+\begin{align*}
+v~\rhd~(q~\dcirc~f)=~&let~v'=v~\rhd~q~in \\
+                                    &v~\rhd~f~v'
+\end{align*}
+\end{definition}
 
 \begin{prop}
  If $X$ and $I$ are Q-modules, and $lift_{X \to I}$ is a well-behaved lifting for $k : |V_I| \to |V_X|$, then the following property holds
