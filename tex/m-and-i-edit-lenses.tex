@@ -436,9 +436,9 @@ Another observation we make is that size of the edit produced in the composition
 of edits, we permit the presence of queries in edits.
 
 \subsection{Queries}
-\begin{definition}[Q-Module] A Q-Module $I$ consists of $(I_m,Q_I,\rhd_I,V_I)$ with
+\begin{definition}[Q-Module] A Q-Module $I$ consists of $(S_I,Q_I,\rhd_I)$ with
 \begin{itemize}
-\item $I_m$ is a module
+\item $S_I$ is a module
 \item $Q_I$ is a monoid of queries
 \item $V_I$ is a module $(|V_I|,Q_I,\rhd_I)$
 \item $|I_m| \subseteq |V_I|$
@@ -464,7 +464,7 @@ of edits, we permit the presence of queries in edits.
 \end{definition} 
 
 \begin{definition}[Liftable Queries]
-Given Q-modules $I$ and $X$, and a ce-lens $l : I_m \leftrightarrow X_m$, we say that $Q_X$ can be lifted to $Q_I$ if there exists a function $k : |V_I| \to |V_x|$ such that for all $q_X$ $(\in Q_X)$, there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commutes.
+Given Q-modules $I$ and $X$, and a ce-lens $l : S_I \leftrightarrow S_X$, we say that $Q_X$ can be lifted to $Q_I$ if there exists a function $k : |V_I| \to |V_x|$ such that for all $q_X$ $(\in Q_X)$, there exists a $q_I$ $(\in Q_I)$ such that the diagram (see figure \ref{fig:lifting-queries}) commutes.
 \end{definition}
 
 In other words, $Q_X$ is liftable to $Q_I$ if the following functions can be defined - $k: |V_I|  \to|V_X|$ and $lift_{X \to I}: Q_X \to Q_I$ satisfying the above property. 
@@ -481,7 +481,7 @@ A well-behaved lifting should satisfy the following law
 \begin{figure}[ht]
 \begin{displaymath}
 \begin{diagram}
-|X_m| & \lTo^{l} & |I_m|\\
+|S_X| & \lTo^{l} & |S_I|\\
 \dTo^{q_X } & & \dTo^{q_I} \\
 |V_X| & \lTo^{k} & |V_I| \\
 \dTo^{q'_X } & & \dTo^{q'_I} \\
@@ -502,15 +502,67 @@ A well-behaved lifting should satisfy the following law
 
 \end{prop}
 
-
-
 \subsection{Optimizing edit mapping function composition}
-The new type of put function (for functor $p: I \to X$) we propose is
-\begin{align*}
-\forall \phi. (q_{\phi}, V \to d_I) \to ((q_{\phi},q_I), (V,V') \to dX) 
-\end{align*}
+
+  Permitting the presence of queries in edits, we define a generalization of $get_1$ for a ce-lens $I \leftrightarrow X$, where $I$ and $X$ are Q-modules:
+\[
+  fget_1 : \forall \phi. \sum_{q \in Q_\phi} (\phi \rhd q \to \delta I) \to \sum_{q \in Q_\phi} (\phi \rhd q \to \sum_{q' \in Q_I} (I \rhd q' \to \delta X))
+\]
+
+  The idea is motivated by the stream fusion paper of having an intermediate structure to optimize composition.
+ \subsubsection{Laws}
+  
+  \begin{mathpar}
+   \inferrule*
+     {fget_1~(q,f) = (q',g)}
+     {q=q'}
+  \end{mathpar}
+
+\subsubsection{Composition}
+\begin{mathpar}
+  \inferrule*
+    {k : A \leftrightarrow B \\ l : B \leftrightarrow C}
+    {k;l : A \leftrightarrow C}
+  
+  \\
+  
+  \begin{array}{lcl}
+    get_0          &=& k.get_0 \circ l.get_0 \\
+    fget_1~M~(q,f) &=& l.fget_1~(M, A) (q, q') (k.fget_1~M~(q,f)) \\
+    put            &=& k.put \circ l.put \\
+%     init       &=& k.init \circ l.init 
+  \end{array}
+
+\end{mathpar}  
 
 \comment{TODO: Show composition can be done easily using lift} 
+
+
+\section{Models of DB-Lenses}
+  We propose two models of using ce-lenses for databases; we describe both of them here for comparison.
+  
+\subsection{Using Q-modules}
+\begin{itemize}
+\item A database model has three monoids - an edit language $E$, an SMO language $S$, a query language $Q$, and a monoid action $rw : S \times Q \to Q$.
+ 
+\item From the definition of a monoid action, it is the case that $rw~(s \circ s')~q = rw~s~(rw~s'~q)$. In addition, we require that $rw~s~(q \circ q') = (rw~s~q). (rw~s~q')$.
+\item The database is a Q-module $(DB,Q,\rhd,V)$.
+\item $DB$ is a module $(|DB|,E,\odot)$ where the carrier is set of instances of the database.
+\item $|V|$ is at least the closure of $|DB|$ under repeated applications of $Q$.
+\item Each element $s$ in $S$ has an ideal-lens $L(s)$ associated with it. For $s_1,s_2 \in S$, $L(s_1 . s_2) ~=~ L(s_1) . L(s_2)$.
+\end{itemize}
+
+\subsection{Categorical model}
+\begin{itemize}
+ \item A database model has three monoids - an edit language $E$, an SMO language $S$, and a query language $Q$, and a monoid action $rw : S \times Q \to Q$.
+ 
+ \item From the definition of a monoid action, it is the case that $rw~(s \circ s')~q = rw~s~(rw~s'~q)$. In addition, we require that $rw~s~(q \circ q') = (rw~s~q). (rw~s~q')$.
+ 
+\item The database model consists of a category $\db$ with two types of objects: source schemas and view schemas. Both source schemas and view schemas are themselves categories. Objects in these categories are schema instances. The homset between a pair of objects in schema categories is a subset of $E$ (applicable edits). A morphism corresponds to the pair of a source object and an edit. Composition of morphisms must respect composition in $E$. 
+ 
+ The homset between a pair of source schemas in $\db$ is a subset of $S$, and between any other pair of objects is a subset of $Q$. Composition of morphisms must respect composition in $Q$ and $S$, as well as the action $rw$. Every morphism in $\db$ (both queries and SMOs) is a ce-lens, i.e. it maps objects and morphisms between the source and target categories.
+ 
+\end{itemize}
 
 \section{Database Lenses}
 
@@ -556,21 +608,6 @@ X & \rTo^{q_X} & V
 % \label{fig:distributed}
 % \end{figure}
 
-\section{Category-theoretic Model of Database lenses}
-\begin{itemize}
- \item A database model has three monoids - an edit language $E$, an SMO language $S$, and a query language $Q$, and a monoid action $rw : S \times Q \to Q$.
- 
- \item From the definition of a monoid action, it is the case that $rw~(s \circ s')~q = rw~s~(rw~s'~q)$. In addition, we require that $rw~s~(q \circ q') = (rw~s~q). (rw~s~q')$.
- 
-\item The database model consist of $DB$ module $(|DB|,E,\odot)$ where the carrier is set of instances of the database.
-\item The database model consist of a Q-module $(DB,Q,\rhd,V)$.
-\item $V$ is a module with carrier set as all possible tables (and database) which can be generated as a result of query on $DB$.
-\item Each element $s$ in $S$ has an ideal-lens $L(s)$ associated with it. For $s_1,s_2 \in S$, $L(s_1 . s_2) ~=~ L(s_1) . L(s_2)$.
- \item The database model consists of a category $\db$ with two types of objects: source schemas and view schemas. Both source schemas and view schemas are themselves categories. Objects in these categories are schema instances. The homset between a pair of objects in schema categories is a subset of $E$. A morphism corresponds to the pair of a source object and an edit. Composition of morphisms respects composition in $E$. 
- 
- The homset between a pair of source schemas in $\db$ is $S$, and between any other pair of objects is a subset of $Q$. Composition of morphisms respects composition in $Q$ and $S$, as well as the action $rw$. Every morphism in $\db$ is a functor.
- 
-\end{itemize}
 
 \section{Questions}
 \begin{enumerate}
