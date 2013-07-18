@@ -325,7 +325,7 @@ These differences imply that neither c-lenses nor ce-lenses are a subclass of th
  An ideal lens $l : X \xleftrightarrow{I} Y$ consists of 
  \begin{enumerate}
   \item an ideal $I$ 
-  \item Two ce-lenses $k : I \leftrightarrow X$ and $l : I \leftrightarrow Y$
+  \item Two ce-lenses $l_{\leftarrow} : I \leftrightarrow X$ and $l_{\rightarrow} : I \leftrightarrow Y$
 \end{enumerate}
 \end{definition}
 
@@ -344,7 +344,58 @@ I_1 \xleftrightarrow{I} I_2$  is an ideal lens $l_1;l_2: X
 \xleftrightarrow{I} Z$.
 
 \section{Examples}
-\comment{TODO}
+
+\begin{definition}[Terminal lens]
+  \begin{mathpar}
+    \inferrule*
+      {~}
+      {term_X \in X \xleftrightarrow{X} \Unit}
+  \end{mathpar}
+    $term_{X\leftarrow} : X \leftrightarrow X$ is the identity. $term_{X\rightarrow} : X \leftrightarrow \Unit$ is defined by
+  \begin{mathpar}
+    \begin{array}{lcl}
+     get_0~x &=& () \\
+     get_1~dx~\_ &=& id \\
+     put~du &=& id
+    \end{array}
+  \end{mathpar}
+\end{definition}
+
+\begin{definition}[Tensor product]
+  \begin{mathpar}
+    \inferrule*
+      {k : X \xleftrightarrow{I} Z \\ k : Z \xleftrightarrow{I'} W}
+      {k \otimes l \in X \otimes Y \xleftrightarrow{I \otimes I'} Z \otimes W}
+  \end{mathpar}
+    $(k \otimes l)_{\leftarrow} : I \otimes I' \leftrightarrow X \otimes Y$ is defined by
+  \begin{mathpar}
+    \begin{array}{lcl}
+     get_0~(i, i') &=& (k.get_0~I, l.get_0~i') \\
+     get_1~(di,di')~(i,i') &=& (k.get_1~di~i, l.get_1~di'~i') \\
+     put~(dx, dy) &=& (k.put~dx, l.put~dy)
+    \end{array}
+  \end{mathpar}
+    $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
+\end{definition}
+
+\begin{definition}[List mapping]
+  \begin{mathpar}
+    \inferrule*
+      {k : X \xleftrightarrow{I} Y}
+      {k^* \in X^* \xleftrightarrow{I^*} Y^*}
+  \end{mathpar}
+    $k^*_{\leftarrow} : I^* \leftrightarrow X^*$ is defined by
+%   \begin{mathpar}
+%     \begin{array}{lcl}
+%      get_0~(is) &=& (k.get_0~I, l.get_0~i') \\
+%      get_1~(di,di')~(i,i') &=& (k.get_1~di~i, l.get_1~di'~i') \\
+%      put~(dx, dy) &=& (k.put~dx, l.put~dy)
+%     \end{array}
+%   \end{mathpar}
+%     $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
+\end{definition}
+
+
 
 \section{Embedding Edit Lenses}
 Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X$ and $Y$ consists of
