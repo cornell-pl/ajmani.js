@@ -219,7 +219,6 @@ such that
   \item $get_0 : I \to X$
   \item $get_1 : dI \times I \to dX$
   \item $put : dX \to dI$
-  \item $init : X \to I$
  \end{itemize}
  satisfying the following laws
  
@@ -239,6 +238,10 @@ such that
    \inferrule*
      {~}
      {put~id = id}
+     
+   \inferrule*
+     {~}
+     {get_1(di' \circ di, i) = get_1(di', di \cdot i) \circ get_1(di, i)}
      
 %    \inferrule*[right=Maybe]
 %      {~}
@@ -385,14 +388,14 @@ I_1 \xleftrightarrow{I} I_2$  is an ideal lens $l_1;l_2: X
       {k^* \in X^* \xleftrightarrow{I^*} Y^*}
   \end{mathpar}
     $k^*_{\leftarrow} : I^* \leftrightarrow X^*$ is defined by
-%   \begin{mathpar}
-%     \begin{array}{lcl}
-%      get_0~(is) &=& (k.get_0~I, l.get_0~i') \\
-%      get_1~(di,di')~(i,i') &=& (k.get_1~di~i, l.get_1~di'~i') \\
-%      put~(dx, dy) &=& (k.put~dx, l.put~dy)
-%     \end{array}
-%   \end{mathpar}
-%     $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
+  \begin{mathpar}
+    \begin{array}{lcl}
+     get_0~(is) &=& (k.get_0~I, l.get_0~i') \\
+     get_1~(di,di')~(i,i') &=& (k.get_1~di~i, l.get_1~di'~i') \\
+     put~(dx, dy) &=& (k.put~dx, l.put~dy)
+    \end{array}
+  \end{mathpar}
+    $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
 \end{definition}
 
 
