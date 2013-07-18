@@ -410,20 +410,20 @@ I_1 \xleftrightarrow{I} I_2$  is an ideal lens $l_1;l_2: X
       {k : X \xleftrightarrow{I} Y}
       {k^* \in X^* \xleftrightarrow{I^*} Y^*}
   \end{mathpar}
-    The monoid of edits, $\delta X^* = \{delete~where~P \mid P \in |X| \to bool\} \cup \{delete~n_1, \ldots, n_k \mid n_i \in \mathcal{N}\}$. \\
+    $\delta X^* = \{delete~where~P \mid P \in |X| \to bool\} \cup \{delete~n_1, \ldots, n_k \mid n_i \in \mathcal{N}\}$. \\
     $V_{X^*} = |X^*| \cup 2^{\mathcal{N}}$. \\
-    $Q_{X^*} = \{filter~P \mid P \in |X| \to bool\}$ \cup \{\bot\}. \\
-    $filter~P \rhd xs = \{n \mid P(xs!!n)\}$,  Otherwise, $\rhd$ is undefined.
-
+    $Q_{X^*} = \{filter~P \mid P \in |X| \to bool\} \cup \{\bot\}$. \\
+    $filter~P \rhd xs = \{n \mid P(xs!!n)\}$. \\
+    $\bot \rhd xs = \{0\}$. \\
+    Otherwise, $\rhd$ is undefined.
   \begin{mathpar}
     \begin{array}{lcl}
      get_0~(is) &=& map~k.get~is \\
-     fget_1~M~(q,f) &=& (q, \lambda v \to \\
-                     && \case{f~v} \\
+     fget_1~M~(q,f) &=& (q, \lambda v \to \case{f~v} \\
                      && \quad delete~where~P \to (filter~P, \lambda v' \to delete~v') \\
-                     && \quad delete~ns \to (\bot, \lamba \_ \to delete~ns)) \\
+                     && \quad delete~ns \to (\bot, \lambda \_ \to delete~ns)) \\
      put~(delete~where~P) &=& delete~where~(k.get_0 \circ P) \\
-     put~(delete~ns) &=& delete~ns)
+     put~(delete~ns) &=& delete~ns
     \end{array}
    \end{mathpar}
     $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
