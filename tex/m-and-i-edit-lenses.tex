@@ -498,6 +498,9 @@ A well-behaved lifting should satisfy the following law
      {~}
      {lift_{X \to I}~id_{Q_X} = id_{Q_I}}
 
+   \inferrule*
+     {~}
+     {lift_{X \to I}~(q_1 \circ q_2)~=~lift_{X \to I}~(q_1)~\circ~lift_{X \to I}~(q_2)}
  \end{mathpar}
  
 \begin{note}
@@ -508,14 +511,6 @@ A well-behaved lifting should satisfy the following law
   We extend the use of $\rhd$ to types. $I \rhd q \defeq \{i \rhd q \mid i \in I\}$
 \end{note}
 
-
-\begin{definition}[Subqueries]
-Given a Q-module $I$, $Q_I$ has subqueries if there is a function \\ $\dcirc : \sum\limits_{q \in Q_I} (I \rhd q \to Q_I) \to Q_I$ such that 
-\begin{align*}
-v~\rhd~(q~\dcirc~f)=v~\rhd~(f~(v~\rhd~q))
-\end{align*}
-\end{definition}
-
 \begin{prop}
  If $X$ and $I$ are Q-modules, and $lift_{X \to I}$ is a well-behaved lifting for $k_{I \to X} : |V_I| \to |V_X|$, then the following property holds
  \[
@@ -525,6 +520,21 @@ v~\rhd~(q~\dcirc~f)=v~\rhd~(f~(v~\rhd~q))
  \]
 
 \end{prop}
+
+
+\begin{definition}[Subqueries]
+Given a Q-module $I$, we construct the free monoid of $Q_I$ with subqueries
+\begin{itemize}
+\item Action is defined as 
+\begin{align*}
+v~\rhd~(q~\dcirc~f)=v~\rhd~(f~(v~\rhd~q))
+\end{align*}
+\item For ce-lens $I \leftrightarrow X$, If $Q_X$ can be lifted to $Q_I$ then monoids with subqueries can also be lifted.
+\begin{align*}
+lift_{X \to I} (q~\dcirc~f)~=~(lift_{X \to I}~q)~\dcirc~(\lambda v \to lift_{X \to I}~(f~(k_{I \to X}~v))
+\end{align*}
+\end{itemize}
+\end{definition}
 
 \subsection{Optimizing edit mapping function composition}
 
@@ -552,7 +562,7 @@ intermediate structure to optimize composition.
 
 \subsubsection{Composition}
 
-fce-lenses $k:A \leftrightarrow B$ and $l : B \leftrightarrow C$ can be composed whenever lifting is defined on their query languages, and the query languages have subqueries.
+fce-lenses $k:A \leftrightarrow B$ and $l : B \leftrightarrow C$ can be composed whenever lifting is defined on their query languages.
 
 \begin{mathpar}
   \inferrule*
