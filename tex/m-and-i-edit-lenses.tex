@@ -26,6 +26,7 @@
 \newcommand{\clens}{\ensuremath{\mathbf{CLens}}}
 \newcommand{\celens}{\ensuremath{\mathbf{CELens}}}
 \newcommand{\letin}[2]{\ensuremath{\textnormal{let}~#1=#2~\textnormal{in}}}
+\newcommand{\case}[1]{\ensuremath{\textnormal{case}~#1~\textnormal{of}}}
 \newcommand{\where}[2]{\ensuremath{\textnormal{where}~#1=#2}}
 
 %opening
@@ -206,7 +207,7 @@ such that
   A module $X$ is a tuple $\langle |X|, \delta X, \odot_X \rangle$; $|X|$ is a set, $\delta X$ is a monoid, and $\odot_X$ is a partial monoid action of $\delta X$ on $|X|$.
 \end{definition}
 
-\paragraph*{Moddules as Categories.}
+\paragraph*{Modules as Categories.}
  Every module $X$ gives rise to a category (and thus, an object in $\cat$) as follows. 
 \begin {itemize}
 \item The objects of the category are the elements $|X|$. 
@@ -219,6 +220,7 @@ such that
   \item $get_0 : I \to X$
   \item $get_1 : dI \times I \to dX$
   \item $put : dX \to dI$
+  \comment{The ``obvious type of put would be $dX \times I \to dI$. This type reflects the assumption that $dI$ is rich enough to reflect on $I$}
  \end{itemize}
  satisfying the following laws
  
@@ -238,7 +240,7 @@ such that
    \inferrule*
      {~}
      {put~id = id}
-     
+   
    \inferrule*
      {~}
      {get_1(di' \circ di, i) = get_1(di', di \cdot i) \circ get_1(di, i)}
@@ -324,6 +326,9 @@ These differences imply that neither c-lenses nor ce-lenses are a subclass of th
 \end{figure}  
 
 \section{Ideal Lenses}
+
+\comment{TODO: Narrative on how such a lens is constructed and run. What notion of consistency do ideal lenses have/support?}
+
 \begin{definition}
  An ideal lens $l : X \xleftrightarrow{I} Y$ consists of 
  \begin{enumerate}
@@ -370,6 +375,7 @@ I_1 \xleftrightarrow{I} I_2$  is an ideal lens $l_1;l_2: X
       {k : X \xleftrightarrow{I} Z \\ k : Z \xleftrightarrow{I'} W}
       {k \otimes l \in X \otimes Y \xleftrightarrow{I \otimes I'} Z \otimes W}
   \end{mathpar}
+    The monoid of edits for $X \otimes Y$ is $\{(dx, dy) \mid dx \in \delta X, dy \in \delta Y\}$.
     $(k \otimes l)_{\leftarrow} : I \otimes I' \leftrightarrow X \otimes Y$ is defined by
   \begin{mathpar}
     \begin{array}{lcl}
@@ -387,18 +393,41 @@ I_1 \xleftrightarrow{I} I_2$  is an ideal lens $l_1;l_2: X
       {k : X \xleftrightarrow{I} Y}
       {k^* \in X^* \xleftrightarrow{I^*} Y^*}
   \end{mathpar}
-    $k^*_{\leftarrow} : I^* \leftrightarrow X^*$ is defined by
-  \begin{mathpar}
-    \begin{array}{lcl}
-     get_0~(is) &=& (k.get_0~I, l.get_0~i') \\
-     get_1~(di,di')~(i,i') &=& (k.get_1~di~i, l.get_1~di'~i') \\
-     put~(dx, dy) &=& (k.put~dx, l.put~dy)
-    \end{array}
-  \end{mathpar}
-    $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
+    The monoid of edits for $X^*$ is $\{delete~where~P \mid P \in |X| \to bool\}$. $k^*_{\leftarrow} : I^* \leftrightarrow X^*$ is defined by
+%   \begin{mathpar}
+%     \begin{array}{lcl}
+%      get_0~(is) &=& map~k.get~is \\
+%      get_1~(delete~where~P,is) &=& (k.get_1~di~i, l.get_1~di'~i') \\
+%      put~(dx, dy) &=& (k.put~dx, l.put~dy)
+%     \end{array}
+%   \end{mathpar}
+%     $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
 \end{definition}
 
+\begin{definition}[List mapping for fce-lenses]
+  \begin{mathpar}
+    \inferrule*
+      {k : X \xleftrightarrow{I} Y}
+      {k^* \in X^* \xleftrightarrow{I^*} Y^*}
+  \end{mathpar}
+    The monoid of edits, $\delta X^* = \{delete~where~P \mid P \in |X| \to bool\} \cup \{delete~n_1, \ldots, n_k \mid n_i \in \mathcal{N}\}$. \\
+    $V_{X^*} = |X^*| \cup 2^{\mathcal{N}}$. \\
+    $Q_{X^*} = \{filter~P \mid P \in |X| \to bool\}$ \cup \{\bot\}. \\
+    $filter~P \rhd xs = \{n \mid P(xs!!n)\}$,  Otherwise, $\rhd$ is undefined.
 
+  \begin{mathpar}
+    \begin{array}{lcl}
+     get_0~(is) &=& map~k.get~is \\
+     fget_1~M~(q,f) &=& (q, \lambda v \to \\
+                     && \case{f~v} \\
+                     && \quad delete~where~P \to (filter~P, \lambda v' \to delete~v') \\
+                     && \quad delete~ns \to (\bot, \lamba \_ \to delete~ns)) \\
+     put~(delete~where~P) &=& delete~where~(k.get_0 \circ P) \\
+     put~(delete~ns) &=& delete~ns)
+    \end{array}
+   \end{mathpar}
+    $(k \otimes l)_{\rightarrow} : I \otimes I' \leftrightarrow Z \otimes W$ is defined similarly.
+\end{definition}
 
 \section{Embedding Edit Lenses}
 Given an Edit Lens between modules $X$ and $Y$ as $(X,Y,C,init,K,\Rrightarrow,\Lleftarrow)$, an ideal lens between modules $X$ and $Y$ consists of
@@ -499,14 +528,13 @@ Another observation we make is that size of the edit produced in the composition
 of edits, we permit the presence of queries in edits.
 
 \subsection{Queries}
-\begin{definition}[Q-Module] A Q-Module $I$ consists of $(S_I,Q_I,\rhd_I)$ with
+\begin{definition}[Q-Module] A Q-Module $I$ consists of $(S_I,Q_I,\rhd_I, V_I)$ with
 \begin{itemize}
 \item $S_I$ is a module
 \item $Q_I$ is a monoid of queries
 \item $V_I$ is a module $(|V_I|,Q_I,\rhd_I)$
 \item $|S_I| \subseteq |V_I|$
-\item $\rhd_{I} : |V_I| \times Q_I \to |V_I|$ is a function which
-  represents action of applying a query.
+\item $\rhd_{I} : Q_I \times |V_I| \rightharpoonup |V_I|$ is a partial monoid action representing the application of a query.
 
 % \item $I_m$ is a module
 % \item $Q_I$ is a set of queries
@@ -538,8 +566,6 @@ In other words, $Q_X$ is liftable to $Q_I$ if the following functions can be def
 |S_X| & \lTo^{l} & |S_I|\\
 \dTo^{q_X } & & \dTo^{q_I} \\
 |V_X| & \lTo^{k_{I \to X}} & |V_I| \\
-\dTo^{q'_X } & & \dTo^{q'_I} \\
-|V_X| & \lTo^{k_{I \to X}} & |V_I| 
 \end{diagram}
 \end{displaymath}
 \caption{Lifting Queries}
@@ -562,7 +588,7 @@ A well-behaved lifting should satisfy the following law
 \end{note}
 
 \begin{note}
-  We extend the use of $\rhd$ to types. $I \rhd q \defeq \{i \rhd q \mid i \in I\}$
+  We extend the use of $\rhd$ to types. $q \rhd I \defeq \{q \rhd i \mid i \in I\}$
 \end{note}
 
 \begin{prop}
@@ -575,13 +601,12 @@ A well-behaved lifting should satisfy the following law
 
 \end{prop}
 
-
 \begin{definition}[Subqueries]
 Given a Q-module $I$, we construct the free monoid of $Q_I$ with subqueries
 \begin{itemize}
 \item Action is defined as 
 \begin{align*}
-v~\rhd~(q~\dcirc~f)=v~\rhd~(f~(v~\rhd~q))
+q~\rhd~(v~\dcirc~f)=(f~(q~\rhd~v))~\rhd~v
 \end{align*}
 \item For ce-lens $I \leftrightarrow X$, If $Q_X$ can be lifted to $Q_I$ then monoids with subqueries can also be lifted.
 \begin{align*}
@@ -596,8 +621,10 @@ Permitting the presence of queries in edits, we define a
 generalization (\comment{Is the use of this word correct}) of $get_1$
 for a ce-lens $I \leftrightarrow X$, where $I$ and $X$ are Q-modules:
 \[
-  fget_1 : \forall \phi. \sum_{q \in Q_\phi} (\phi \rhd q \to \delta I) \to \sum_{q \in Q_\phi} (\phi \rhd q \to \sum_{q' \in Q_I} (I \rhd q' \to \delta X))
+  fget_1 : \forall \phi. \sum_{q \in Q_\phi} (q \rhd \phi \to \delta I) \to \sum_{q \in Q_\phi} (q \rhd \phi \to \sum_{q' \in Q_I} (q' \rhd I \to \delta X))
 \]
+
+where $\phi$ is a Q-module.
 
 A ce-lens with $fget_1$ instead of $get_1$ is called an \emph{fce-lens}. The idea is motivated by the stream fusion paper of having an
 intermediate structure to optimize composition.
@@ -645,7 +672,7 @@ as
 \begin{align*}
 get_1~(di,i) =~&let~(\_,f) =~fget_1~(id,\lambda~\_~\to di)~in\\
                        &let~(q,g) =~f~i~in \\
-                       &g~(i~\rhd~q)
+                       &g~(q~\rhd~i)
 \end{align*}
 
 
