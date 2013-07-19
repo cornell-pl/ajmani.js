@@ -214,6 +214,9 @@ such that
 \item Morphisms in the category are $x \stackrel{dx}{\mapsto} x'$, where $dx \in \delta X$, and $dx \odot x = x'$.
 \end{itemize}
 
+\begin{definition}[Equivalence of edits]
+Given a module $I$, edits $di_1 \defeq di_2$ if forall $i \in |I|$ $di_1 \circ i = di_2 \circ i$.
+\end{definition}
 \begin{definition}[CE-lens]
  A ce-lens $l$ between modules $I$ and $X$ consists of the following functions
  \begin{itemize}
@@ -236,15 +239,22 @@ such that
    \inferrule*
      {di \odot i = i'}
      {get_1 (di, i) \odot (get_0~i) = get_0~i'  }
-     
-   \inferrule*
-     {~}
-     {put~id = id}
-   
+        
    \inferrule*
      {~}
      {get_1(di' \circ di, i) = get_1(di', di \cdot i) \circ get_1(di, i)}
-     
+   
+   \inferrule*
+     {~}
+     {put~id = id}
+
+   \inferrule*
+     {~}
+     {get~(put~dx)~i \defeq dx}
+   
+   \inferrule*
+     {~}
+     {\exists di' . di \defeq di' \circ put~(get~di~i)}
 %    \inferrule*[right=Maybe]
 %      {~}
 %      {put~dx \odot i = init~(dx \odot (get_0~i))}
